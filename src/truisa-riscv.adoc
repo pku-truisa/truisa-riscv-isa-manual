@@ -1,0 +1,66 @@
+[[truisa-risc-v-isa]]
+= The TruISA RISC-V Instruction Set Manual
+include::../docs-resources/global-config.adoc[]
+:description: Unprivileged and Privileged Architecture
+:revnumber: 20240711
+:revremark: Pre-release version
+:colophon:
+:preface-title: Preamble
+:appendix-caption: Appendix
+:imagesdir: ../docs-resources/images
+//:title-logo-image: none
+//:page-background-image: none
+//:title-page-background-image: none
+//:back-cover-image: image:backpage.png[opacity=25%]
+// Settings:
+:experimental:
+:reproducible:
+:imagesoutdir: images
+:bibtex-file: src/resources/riscv-spec.bib
+:bibtex-order: alphabetical
+:bibtex-style: apa
+:bibtex-format: asciidoc
+:bibtex-throw: false
+:icons: font
+:lang: en
+:example-caption: Example
+:listing-caption: Listing
+:sectnums:
+:toc: left
+:toclevels: 5
+:source-highlighter: pygments
+ifdef::backend-pdf[]
+:source-highlighter: rouge
+endif::[]
+:table-caption: Table
+:figure-caption: Figure
+:xrefstyle: short
+:chapter-refsig: Chapter
+:section-refsig: Section
+:appendix-refsig: Appendix
+// Uncomment :data-uri: if your eBook reader is not capable of rendering
+// embedded images. One known affected device is PocketBook InkPad 3.
+:data-uri:
+:hide-uri-scheme:
+:stem: latexmath
+:footnote:
+:le: &#8804;
+:ge: &#8805;
+:ne: &#8800;
+:approx: &#8776;
+:inf: &#8734;
+:csrname: envcfg
+:imagesdir: images
+
+_Contributors to all versions of the spec in alphabetical order (please contact editors to suggest
+corrections): 佟冬_
+
+_This document is released under a Creative Commons Attribution 4.0 International License._
+
+
+//the colophon allows for a section after the preamble that is part of the frontmatter and therefore not assigned a page number.
+include::truisa-rv32t.adoc[]
+//include::index.adoc[]
+// this is generated generated from index markers.
+//include::bibliography.adoc[]
+// this references the riscv-spec.bi file that has been copied into the resources directory

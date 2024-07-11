@@ -1,0 +1,35 @@
+[[truisa-rv32t]]
+== RV32T Tagged Pointer Format
+
+// [%autowidth.stretch,float="center",align="center",cols="^2m,^2m,^2m,^2m,<2m,>3m, <4m, >4m, <4m, >4m, <4m, >4m, <4m, >4m, <6m"]
+// |===
+//     |31 |27 |26  |25    |24 |  20|19  |   15| 14  |  12|11      |      7|6   |   0|
+//  4+^|funct7          2+^|rs2  2+^|rs1    2+^|funct3 2+^|rd           2+^|opcode  <|R-type
+//  6+^|imm[11:0]                2+^|rs1    2+^|funct3 2+^|rd           2+^|opcode  <|I-type
+//  4+^|imm[11:5]       2+^|rs2  2+^|rs1    2+^|funct3 2+^|imm[4:0]     2+^|opcode  <|S-type
+//  4+^|imm[12\|10:5]   2+^|rs2  2+^|rs1    2+^|funct3 2+^|imm[4:1\|11] 2+^|opcode  <|B-type
+// 10+^|imm[31:12]                                     2+^|rd           2+^|opcode  <|U-type
+// 10+^|imm[20\|10:1\|11\|19:12]                       2+^|rd           2+^|opcode  <|J-type
+// |===
+
+[%autowidth.stretch,float="center",align="center",cols="32*"]
+|===
+     |31   |30   |29   |28|27 |26|25|24     |23|22|21|20|19|18|17|...|...|...|...|...|...|...|...|...|7|6|5|4|3|2|1|0
+  8+^|0x00                              24+^|Address
+  1+^|0 1+^|W 1+^|R 5+^|S-Size          24+^|Address 
+  1+^|0 1+^|W 1+^|R 2+^|11 3+^|Table    24+^|Address 
+  1+^|1 1+^|W 1+^|R 5+^|F-Size          24+^|Address
+  1+^|1 1+^|W 1+^|R 2+^|11 3+^|Type     24+^|Address
+  8+^|0xFF                              24+^|Address
+|===
+
+[%autowidth.stretch,float="center",align="center",cols="32*"]
+|===
+      |63   |62   |61   |60|59 |58|57|56|55  |54|...|48     |47|46|45|44|...|...|...|...|...|...|...|...|7|6|5|4|3|2|1|0
+  12+^|0x00                                             20+^|Address
+   1+^|0 1+^|W 1+^|R 6+^|S-Size           3+^|Reserved  20+^|Address 
+   1+^|0 1+^|W 1+^|R 2+^|11 4+^|Table     3+^|Reserved  20+^|Address 
+   1+^|1 1+^|W 1+^|R 6+^|F-Size           3+^|Reserved  20+^|Address
+   1+^|1 1+^|W 1+^|R 2+^|11 4+^|Type      3+^|Reserved  20+^|Address
+  12+^|0xFF                                             20+^|Address
+|===
