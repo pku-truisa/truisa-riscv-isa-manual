@@ -1,35 +1,55 @@
 [[truisa-rv32t]]
-== RV32T Tagged Pointer Format
+== RV32T/RV64T的标记指针
 
-// [%autowidth.stretch,float="center",align="center",cols="^2m,^2m,^2m,^2m,<2m,>3m, <4m, >4m, <4m, >4m, <4m, >4m, <4m, >4m, <6m"]
-// |===
-//     |31 |27 |26  |25    |24 |  20|19  |   15| 14  |  12|11      |      7|6   |   0|
-//  4+^|funct7          2+^|rs2  2+^|rs1    2+^|funct3 2+^|rd           2+^|opcode  <|R-type
-//  6+^|imm[11:0]                2+^|rs1    2+^|funct3 2+^|rd           2+^|opcode  <|I-type
-//  4+^|imm[11:5]       2+^|rs2  2+^|rs1    2+^|funct3 2+^|imm[4:0]     2+^|opcode  <|S-type
-//  4+^|imm[12\|10:5]   2+^|rs2  2+^|rs1    2+^|funct3 2+^|imm[4:1\|11] 2+^|opcode  <|B-type
-// 10+^|imm[31:12]                                     2+^|rd           2+^|opcode  <|U-type
-// 10+^|imm[20\|10:1\|11\|19:12]                       2+^|rd           2+^|opcode  <|J-type
-// |===
+在RV32T/RV64T中，虚拟地址采用标记指针(Tagged Pointer)格式，将内存对象的元数据信息以压缩编码的形式保存在虚拟地址的高TLEN未使用位域中。
+标记指针由两部分组成：标记(Tag)位域和线性地址位域(Address)。
+在RV32T中，标记位域是8比特，线性地址是24比特。在Rv64T中，标记位域是16比特，线性地址是64比特。
 
+下图阐明了RV32T/RV64T的虚拟地址格式，表1解释了各个字段的含义。
+
+{empty} +
 [%autowidth.stretch,float="center",align="center",cols="32*"]
 |===
-     |31   |30   |29   |28|27 |26|25|24     |23|22|21|20|19|18|17|...|...|...|...|...|...|...|...|...|7|6|5|4|3|2|1|0
-  8+^|0x00                              24+^|Address
-  1+^|0 1+^|W 1+^|R 5+^|S-Size          24+^|Address 
-  1+^|0 1+^|W 1+^|R 2+^|11 3+^|Table    24+^|Address 
-  1+^|1 1+^|W 1+^|R 5+^|F-Size          24+^|Address
-  1+^|1 1+^|W 1+^|R 2+^|11 3+^|Type     24+^|Address
-  8+^|0xFF                              24+^|Address
+  32+^|*RV32T标记指针格式*
+      |31   |30   |29   |28|27 |26|25|24     |23|22|21|20|19|18|17|...|...|...|...|...|...|...|...|...|7|6|5|4|3|2|1|0
+   8+^|0x00                              24+^|Address
+   1+^|0 1+^|G 1+^|S 5+^|S-Size          24+^|Address 
+   1+^|0 1+^|G 1+^|S 2+^|11 3+^|Table    24+^|Address 
+   1+^|1 2+^|WR      5+^|F-Size          24+^|Address
+   1+^|1 2+^|WR      2+^|11 3+^|Type     24+^|Address
+   8+^|0xFF                              24+^|Address
 |===
+1. 如果标记位域是0x00或者0xFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
 
+2. 虚拟地址最高位如果清0，表示标记位域是Centroid Hased Object Table模式。
+G如果清0，则表示访问局部对象表；如果置1，则表示访问全局对象表。
+S如果清0，则表示Ueer模式可访问；如果置1；则表示Supervisor模式可访问。
+F-Size表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Size幂次方。F-Size必须小于24.档F-Size位域大于24时，Type表示Address所在内存块是基本数据类型。Type不能等于7.
+
+3. 虚拟地址最高位如果置1，表示标记位域是Radix-block模式。。
+WR表示读写权限：00表示可执行可读权限（execute-read）；01表示只读权限（read-only）；10表示只写权限（write-only）；11表示可读可写权限（Write-read）。
+S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小和对齐内存块的中点。S-Size必须大于0，并且必须小于24。当S-Size位域大于等于24时，Table表示对象表的最低8个表项索引。
+{empty} +
 [%autowidth.stretch,float="center",align="center",cols="32*"]
 |===
+  32+^|*RV64T标记指针格式*
       |63   |62   |61   |60|59 |58|57|56|55  |54|...|48     |47|46|45|44|...|...|...|...|...|...|...|...|7|6|5|4|3|2|1|0
   12+^|0x00                                             20+^|Address
-   1+^|0 1+^|W 1+^|R 6+^|S-Size           3+^|Reserved  20+^|Address 
-   1+^|0 1+^|W 1+^|R 2+^|11 4+^|Table     3+^|Reserved  20+^|Address 
-   1+^|1 1+^|W 1+^|R 6+^|F-Size           3+^|Reserved  20+^|Address
-   1+^|1 1+^|W 1+^|R 2+^|11 4+^|Type      3+^|Reserved  20+^|Address
+   1+^|0 1+^|G 1+^|S 6+^|S-Size           3+^|Reserved  20+^|Address 
+   1+^|0 1+^|G 1+^|S 2+^|11 4+^|Table     3+^|Reserved  20+^|Address 
+   1+^|1 2+^|WR      6+^|F-Size           3+^|Reserved  20+^|Address
+   1+^|1 2+^|WR      2+^|11 4+^|Type      3+^|Reserved  20+^|Address
   12+^|0xFF                                             20+^|Address
 |===
+1. 如果标记位域是0x0000或者0xFFFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
+
+2. 虚拟地址最高位如果清0，表示标记位域是Centroid Hased Object Table模式。
+G如果清0，则表示访问局部对象表；如果置1，则表示访问全局对象表。
+S如果清0，则表示Ueer模式可访问；如果置1；则表示Supervisor模式可访问。
+F-Size表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Size幂次方。F-Size必须小于48.档F-Size位域大于48时，Type表示Address所在内存块是基本数据类型。Type不能等于15.
+
+3. 虚拟地址最高位如果置1，表示标记位域是Radix-block模式。。
+WR表示读写权限：00表示可执行可读权限（execute-read）；01表示只读权限（read-only）；10表示只写权限（write-only）；11表示可读可写权限（Write-read）。
+S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小和对齐内存块的中点。S-Size必须大于0，并且必须小于48。当S-Size位域大于等于48时，Table表示对象表的最低16个表项索引。
+
+
