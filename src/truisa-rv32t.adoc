@@ -19,6 +19,7 @@
    1+^|1 2+^|WR      2+^|11 3+^|Type     24+^|Address
    8+^|0xFF                              24+^|Address
 |===
+
 1. 如果标记位域是0x00或者0xFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
 
 2. 虚拟地址最高位如果清0，表示标记位域是Centroid Hased Object Table模式。
@@ -29,6 +30,7 @@ F-Size表示Address所在内存对象是固定大小的内存块，块大小和�
 3. 虚拟地址最高位如果置1，表示标记位域是Radix-block模式。。
 WR表示读写权限：00表示可执行可读权限（execute-read）；01表示只读权限（read-only）；10表示只写权限（write-only）；11表示可读可写权限（Write-read）。
 S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小和对齐内存块的中点。S-Size必须大于0，并且必须小于24。当S-Size位域大于等于24时，Table表示对象表的最低8个表项索引。
+
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="32*"]
 |===
@@ -41,6 +43,7 @@ S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小�
    1+^|1 2+^|WR      2+^|11 4+^|Type      3+^|Reserved  20+^|Address
   12+^|0xFF                                             20+^|Address
 |===
+
 1. 如果标记位域是0x0000或者0xFFFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
 
 2. 虚拟地址最高位如果清0，表示标记位域是Centroid Hased Object Table模式。
@@ -52,4 +55,25 @@ F-Size表示Address所在内存对象是固定大小的内存块，块大小和�
 WR表示读写权限：00表示可执行可读权限（execute-read）；01表示只读权限（read-only）；10表示只写权限（write-only）；11表示可读可写权限（Write-read）。
 S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小和对齐内存块的中点。S-Size必须大于0，并且必须小于48。当S-Size位域大于等于48时，Table表示对象表的最低16个表项索引。
 
+<<<
+== TruISA-RISC-V 指令编码
 
+[%autowidth.stretch,float="center",align="center",cols="^2m,^2m,^2m,^2m,<2m,>3m, <4m, >4m, <4m, >4m, <4m, >4m, <4m, >4m, <6m"]
+|===
+    |31 |27 |26  |25    |24 |  20|19  |  15| 14  |  12|11      |      7|6   |   0|
+15+^|*RV32T Base Instruction Set*
+ 6+^|imm[11:0]                2+^|rs1   2+^|101    2+^|rd           2+^|0001111 <|INCPTRI
+ 6+^|imm[11:0]                2+^|rs1   2+^|110    2+^|rd           2+^|0001111 <|TAGPTRI
+ 6+^|imm[11:0]                2+^|rs1   2+^|111    2+^|rd           2+^|0001111 <|LPTR
+ 4+^|imm[11:5]      2+^|rs2   2+^|rs1   2+^|111    2+^|imm[4:0]     2+^|0100011 <|SPTR
+ 4+^|0100000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|SUBPTR
+ 4+^|0000100        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|PTRTAG
+ 4+^|0000101        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|PTRINT
+ 4+^|0000110        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|PTRBASE
+ 4+^|0100110        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|PTRBOUND 
+ 4+^|0000111        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|PTROID
+ 4+^|0001100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|SLTUPTR
+ 4+^|0010100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|INCPTR
+ 4+^|0011000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|TAGPTR
+ 4+^|0011001        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|INTPTR
+|===
