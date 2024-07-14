@@ -1,7 +1,7 @@
 [[truisa-risc-v-isa]]
-= The TruISA RISC-V Instruction Set Manual
+= TruISA RISC-V 指令集手册
 include::../docs-resources/global-config.adoc[]
-:description: Unprivileged and Privileged Architecture
+:description: The TruISA RISC-V Instruction Set Manual Unprivileged and Privileged Architecture
 :revnumber: 20240711
 :revremark: Pre-release version
 :colophon:
