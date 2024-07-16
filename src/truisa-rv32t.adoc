@@ -11,49 +11,75 @@
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T标记指针格式*
-      |31   |30   |29   |28|27 |26|25|24     |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   8+^|0x00                              18+^|Address
-   1+^|0 1+^|G 1+^|S 5+^|S-Size          18+^|Address 
-   1+^|0 1+^|G 1+^|S 2+^|11 3+^|Table    18+^|Address 
-   1+^|1 2+^|WR      5+^|F-Size          18+^|Address
-   1+^|1 2+^|WR      2+^|11 3+^|Type     18+^|Address
-   8+^|0xFF                              18+^|Address
+      |31   |30|29     |28|27|26 |25   |24    |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
+   8+^|0x00                               18+^|Address
+   1+^|0 5+^|S-Size           1+^|T 1+^|S 18+^|Address 
+   1+^|0 2+^|11     3+^|Index 1+^|T 1+^|S 18+^|Address 
+   1+^|1 5+^|F-Size           2+^|WR      18+^|Address
+   1+^|1 2+^|11     3+^|Type  2+^|WR      18+^|Address
+   8+^|0xFF                               18+^|Address
 |===
 
-1. 如果标记位域是0x00或者0xFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
+如果标记位域是0x00或者0xFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
 
-2. 虚拟地址最高位如果清0，表示标记位域是Centroid Hased Object Table模式。
-G如果清0，则表示访问局部对象表；如果置1，则表示访问全局对象表。
-S如果清0，则表示Ueer模式可访问；如果置1；则表示Supervisor模式可访问。
-F-Size表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Size幂次方。F-Size必须小于24.档F-Size位域大于24时，Type表示Address所在内存块是基本数据类型。Type不能等于7.
+虚拟地址最高位如果清0，表示标记位域是Centroid Hased Object Table模式。
 
-3. 虚拟地址最高位如果置1，表示标记位域是Radix-block模式。。
-WR表示读写权限：00表示可执行可读权限（execute-read）；01表示只读权限（read-only）；10表示只写权限（write-only）；11表示可读可写权限（Write-read）。
-S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小和对齐内存块的中点。S-Size必须大于0，并且必须小于24。当S-Size位域大于等于24时，Table表示对象表的最低8个表项索引。
+G如果清0，则表示访问局部对象表；如果置1，则表示访问全局对象表。（TODO：暂不实现，默认清0）。
+
+S如果清0，则表示Ueer模式可访问；如果置1；则表示Supervisor模式可访问。（TODO：暂不实现，默认清0）。
+
+S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小和对齐内存块的中间点地址。
+S-Size必须大于0，并且必须小于24。当S-Size位域大于等于24时，Table表示对象表的最低8个表项索引。
+
+虚拟地址最高位如果置1，表示标记位域是Radix-block模式。。
+
+WR表示读写权限：
+00表示可执行可读权限（execute-read）；
+01表示只读权限（read-only）；
+10表示只写权限（write-only）（TODO：保留，暂不实现；
+11表示可读可写权限（Write-read）。
+
+F-Size表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Size幂次方。F-Size必须小于24.
+当F-Size位域大于24时，Type表示Address所在内存块是基本数据类型，类型尺寸是Type的2的幂次方大小和对齐，不能进行指针运算操作。Type不能等于7.
+
+
+
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T标记指针格式*
-      |63   |62   |61   |60|59 |58|57|56|55  |54|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
-  12+^|0x00                                             14+^|Address
-   1+^|0 1+^|G 1+^|S 6+^|S-Size           3+^|Reserved  14+^|Address 
-   1+^|0 1+^|G 1+^|S 2+^|11 4+^|Table     3+^|Reserved  14+^|Address 
-   1+^|1 2+^|WR      6+^|F-Size           3+^|Reserved  14+^|Address
-   1+^|1 2+^|WR      2+^|11 4+^|Type      3+^|Reserved  14+^|Address
-  12+^|0xFF                                             14+^|Address
+      |63   |62|61     |60|59|58|57 |56   |55   |54|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
+  12+^|0x0000                                              14+^|Address
+   1+^|0 6+^|S-Size              1+^|T 1+^|S 3+^|Reserved  14+^|Address 
+   1+^|0 2+^|11     4+^|Index    1+^|T 1+^|S 3+^|Reserved  14+^|Address 
+   1+^|1 6+^|F-Size              2+^|WR      3+^|Reserved  14+^|Address
+   1+^|1 2+^|11     4+^|Type     2+^|WR      3+^|Reserved  14+^|Address
+  12+^|0xFFFF                                              14+^|Address
 |===
 
-1. 如果标记位域是0x0000或者0xFFFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
+如果标记位域是0x0000或者0xFFFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
 
-2. 虚拟地址最高位如果清0，表示标记位域是Centroid Hased Object Table模式。
+虚拟地址最高位如果清0，表示标记位域是Centroid Hased Object Table模式。
+
 G如果清0，则表示访问局部对象表；如果置1，则表示访问全局对象表。（TODO：暂不实现，默认清0）。
-S如果清0，则表示Ueer模式可访问；如果置1；则表示Supervisor模式可访问。（TODO：暂不实现，默认清0）。
-F-Size表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Size幂次方。F-Size必须小于48.档F-Size位域大于48时，Type表示Address所在内存块是基本数据类型。Type不能等于15.
 
-3. 虚拟地址最高位如果置1，表示标记位域是Radix-block模式。。
-WR表示读写权限：00表示可执行可读权限（execute-read）；01表示只读权限（read-only）；10表示只写权限（write-only）；11表示可读可写权限（Write-read）。
-S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小和对齐内存块的中点。S-Size必须大于0，并且必须小于48。当S-Size位域大于等于48时，Table表示对象表的最低16个表项索引。
+S如果清0，则表示Ueer模式可访问；如果置1；则表示Supervisor模式可访问。（TODO：暂不实现，默认清0）。
+
+S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小和对齐内存块的中间点地址。
+S-Size必须大于0，并且必须小于48。当S-Size位域大于等于48时，Index表示对象表的最低16个表项索引。
+
+虚拟地址最高位如果置1，表示标记位域是Radix-block模式。。
+WR表示读写权限：
+00表示可执行可读权限（execute-read）；
+01表示只读权限（read-only）；
+10表示只写权限（write-only）（TODO：保留，暂不实现；
+11表示可读可写权限（Write-read）。
+
+F-Size表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Size幂次方。
+F-Size必须小于48.当F-Size位域大于48时，Type表示Address所在内存块是基本数据类型，类型尺寸是Type的2的幂次方大小和对齐，不能进行指针运算操作。Type不能等于15.
+
+
 
 <<<
 == TruISA-RISC-V 指令编码
@@ -77,6 +103,10 @@ S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小�
  4+^|0110100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|DECPTR
  4+^|0011000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|TAGPTR
  4+^|0011001        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|INTPTR
+ 4+^|0011100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|DOLBLD
+ 4+^|0111100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|IOLBLD
+ 4+^|0011101        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|DOLBIV
+ 4+^|0111101        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|IOLBIV
 |===
 
 <<<
@@ -85,22 +115,32 @@ S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小�
 
 越界例外：如果在ld/st指令的地址超出rs1定义的内存对象边界，则产生边界溢出例外。
 
-权限例外：读写例外；偏移例外，对read-only写st指令，中write-only读ld指令，产生读写权限例外，Type类型指针进行指针计算操作，产生偏移例外。
+权限例外。
+读写例外：对read-only和execute-read执行st类指令。对excute-read指令ld类指令。
+偏移例外：Type类型指针进行指针运算，产生偏移例外。
+取指例外：用非execute-read指针进行跳转或转移指令。（TODO：暂不实现）
 
-取指例外：指针不是execute-read权限，或者指令指针计算越界；（TODO：暂不实现）。
-
-对象新建例外：在执行TAGPTR指令修改指针标记是，如果违反单调性原则，则产生对象生成例外。（TODO：暂不实现）
+创建例外：在执行TAGPTR指令修改指针标记是，如果违反单调性原则，则产生对象生成例外。（TODO：暂不实现）
 
 <<<
 == RV32T/RV64T 指令详解
 
 <<<
 == RV32T/RV64T CSR详解
-CROOT Pointer CSR，权限00
-DROOT Pointer CSR；权限11
+CROOT Pointer CSR，指令根描述符；默认权限00；
+DROOT Pointer CSR；数据根描述符；默认权限11；
 
-GOTR Register CSR
-LOTR Register CSR
+GOTR Register CSR （Global Object Table Register）（TODO：保留暂不实现）
 
-8个Object Entry CSR in 32T
-16个Ojbect Entry CSR in 64T
+LOTR Register CSR （Local Object Table Register），物理地址
+
+例外屏蔽寄存器和例外使能寄存器
+
+RVT配置寄存器
+
+ 8个 Object Descriptor CSR in RV32T
+16个 Ojbect Descriptor CSR in 6RV4T
+
+TODO: 
+Load DOLB Entry 和 Invalid DOLB Entry (ALL/VA/ASID)
+Load IOLB Entry 和 Invalid IOLB Entry (ALL/VA/ASID)
