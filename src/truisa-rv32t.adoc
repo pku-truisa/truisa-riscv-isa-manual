@@ -11,13 +11,13 @@
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T标记指针格式*
-      |31   |30|29     |28|27|26 |25   |24    |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   8+^|0x00                               18+^|Address
-   1+^|0 5+^|S-Size           1+^|T 1+^|S 18+^|Address 
-   1+^|0 2+^|11     3+^|Index 1+^|T 1+^|S 18+^|Address 
-   1+^|1 5+^|F-Size           2+^|WR      18+^|Address
-   1+^|1 2+^|11     3+^|Type  2+^|WR      18+^|Address
-   8+^|0xFF                               18+^|Address
+      |31   |30|29     |28|27|26 |25    |24    |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
+   8+^|0x00                                18+^|Address
+   1+^|0 5+^|S-Size           1+^|T  1+^|S 18+^|Address 
+   1+^|0 2+^|11     3+^|Index 1+^|T  1+^|S 18+^|Address 
+   1+^|1 5+^|F-Size           1+^|NT 1+^|W 18+^|Address
+   1+^|1 2+^|11     4+^|Type         1+^|W 18+^|Address
+   8+^|0xFF                                18+^|Address
 |===
 
 如果标记位域是0x00或者0xFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
@@ -49,13 +49,13 @@ F-Size表示Address所在内存对象是固定大小的内存块，块大小和�
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T标记指针格式*
-      |63   |62|61     |60|59|58|57 |56   |55   |54|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
-  12+^|0x0000                                              14+^|Address
-   1+^|0 6+^|S-Size              1+^|T 1+^|S 3+^|Reserved  14+^|Address 
-   1+^|0 2+^|11     4+^|Index    1+^|T 1+^|S 3+^|Reserved  14+^|Address 
-   1+^|1 6+^|F-Size              2+^|WR      3+^|Reserved  14+^|Address
-   1+^|1 2+^|11     4+^|Type     2+^|WR      3+^|Reserved  14+^|Address
-  12+^|0xFFFF                                              14+^|Address
+      |63   |62|61     |60|59|58|57 |56   |55    |54|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
+  12+^|0x0000                                               14+^|Address
+   1+^|0 6+^|S-Size              1+^|T 1+^|S  3+^|Reserved  14+^|Address 
+   1+^|0 2+^|11     4+^|Index    1+^|T 1+^|S  3+^|Reserved  14+^|Address 
+   1+^|1 6+^|F-Size              1+^|NT 1+^|W 3+^|Reserved  14+^|Address
+   1+^|1 2+^|11     5+^|Type            1+^|W 3+^|Reserved  14+^|Address
+  12+^|0xFFFF                                               14+^|Address
 |===
 
 如果标记位域是0x0000或者0xFFFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
@@ -103,10 +103,10 @@ F-Size必须小于48.当F-Size位域大于48时，Type表示Address所在内存�
  4+^|0110100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|DECPTR
  4+^|0011000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|TAGPTR
  4+^|0011001        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|INTPTR
- 4+^|0011100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|DOLBLD
- 4+^|0111100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|IOLBLD
- 4+^|0011101        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|DOLBIV
- 4+^|0111101        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|IOLBIV
+ 4+^|0011100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|LDOLB
+// 4+^|0111100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd         2+^|0001111 <|LDOLBI
+ 4+^|0011101        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|INVOLB
+// 4+^|0111101        2+^|00000 2+^|rs1   2+^|011    2+^|00000      2+^|0001111 <|INVOLBI
 |===
 
 <<<
@@ -127,20 +127,15 @@ F-Size必须小于48.当F-Size位域大于48时，Type表示Address所在内存�
 
 <<<
 == RV32T/RV64T CSR详解
-CROOT Pointer CSR，指令根描述符；默认权限00；
-DROOT Pointer CSR；数据根描述符；默认权限11；
+CROOT Pointer CSR IndexTable[0]，指令根描述符；默认W权限0；
+DROOT Pointer CSR IndexTable[1]，数据根描述符；默认W权限1；
 
-GOTR Register CSR （Global Object Table Register）（TODO：保留暂不实现）
-
-LOTR Register CSR （Local Object Table Register），物理地址
-
-例外屏蔽寄存器和例外使能寄存器
+LOTR Register CSR （Local Object Table Register）
 
 RVT配置寄存器
 
- 8个 Object Descriptor CSR in RV32T
-16个 Ojbect Descriptor CSR in 6RV4T
+例外屏蔽寄存器和例外使能寄存器
 
-TODO: 
-Load DOLB Entry 和 Invalid DOLB Entry (ALL/VA/ASID)
-Load IOLB Entry 和 Invalid IOLB Entry (ALL/VA/ASID)
+Index Table
+ 8个 Object Descriptor CSR in RV32T
+16个 Ojbect Descriptor CSR in RV64T
