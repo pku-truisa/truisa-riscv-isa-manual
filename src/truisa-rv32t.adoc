@@ -172,16 +172,55 @@ BR: Borrow;
 
 <<<
 == RV32T/RV64T CSR详解
-CROOT Pointer CSR IndexTable[0]，指令根描述符；默认W权限0；
-DROOT Pointer CSR IndexTable[1]，数据根描述符；默认W权限1；
 
-Global Register CSR (Global Object Table Register)
-LOTR Register CSR (Local Object Table Register)
+3.1.1. Machine ISA Register misa
 
-RVT配置寄存器
+|===
 
-例外屏蔽寄存器和例外使能寄存器
+|Bit |Character |Description
+|1        |SIE  |S-Mode Interrupt Enable
+|3        |MIE  |M-Mode Interrupt Enable
+|5        |SPIE |S-Mode Previous Interrupt Enable
+|6        |UBE  |U-Mode Big-Endian
+|7        |MPIE |M-Mode Previous Interrupt Enable
+|8        |SPP  |S-Mode Previous Privilege mode
+|[10..9]  |VS   |Vector unit State
+|[12..11] |MPP  |M-Mode Previous Privilege mode
+|[14..13] |FS   |Floating-point unit State
+|[16..15] |XS   |U-Mode State
+|17       |MPRV |Modify PRiVilege
+|18       |SUM  |Supervisor User Memory access
+|19       |MXR  |Make eXecutable Readable
+|20       |TVM  |Trap Virtual Memory
+|21       |TW   |Timeout Wait
+|22       |TSR  |Trap SRET
+|[33..32] |UXL  |U-Mode XLEN
+|[35..34] |SXL  |S-Mode XLEN
+|36       |SBE  |S-Mode Big-Endian
+|37       |MBE  |M-Mode Big-Endian
+|===
+
+3.1.15. Machine Cause Register (mcause)
+|===
+|Interrupt |Exception |priority |Code Description
+|0         |24        |as 0     |Instruction address secure fault
+|0         |25        |as 1     |Instruction access  secure fault
+|0         |28        |as 4     |Load address secure fault
+|0         |29        |as 5     |Load access  secure fault
+|0         |30        |as 6     |Store/AMO address secure fault
+|0         |31        |as 7     |Store/AMO access  secure fault
+|===
+
+3.1.18. Machine Environment Configuration Register (menvcfg)
+
+|===
+|Bit |Character |Description
+|16        |MSTE  | Memory Safety Trap Enable
+|===
 
 Index Table
- 8个 Object Descriptor CSR in RV32T
+8个 Object Descriptor CSR in RV32T
+
 16个 Ojbect Descriptor CSR in RV64T
+
+32个 Object Descriptor CSR in RV128T
