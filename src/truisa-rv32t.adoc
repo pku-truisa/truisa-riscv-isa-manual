@@ -1,11 +1,21 @@
 [[truisa-rv32t]]
 == RV32T/RV64T的标记指针
 
-在RV32T/RV64T中，虚拟地址采用标记指针(Tagged Pointer)格式，将内存对象的元数据信息以压缩编码的形式保存在虚拟地址的高TLEN未使用位域中。
+在RV32T/RV64T中，线性地址采用标记指针(Tagged Pointer)格式，将内存对象的元数据信息以压缩编码的形式保存在线性地址高TLEN的未使用位域中。
 标记指针由两部分组成：标记(Tag)位域和线性地址位域(Address)。
 在RV32T中，标记位域是8比特，线性地址是24比特。在Rv64T中，标记位域是16比特，线性地址是64比特。
 
-下图阐明了RV32T/RV64T的虚拟地址格式，表1解释了各个字段的含义。
+四种类型的标记指针：
+
+描述符表标记指针：在对象描述符表中存在相对应的描述符表项，采用形心标记的哈希对象表。通过S-Size和Address寄存器形心标记。只能由Malloc等库函数处理，不能由TAGPTR直接生成。
+
+描述符寄存器标记指针：存在相对应的CSR描述符寄存器，RV32T共有8个，RV64T共有16个，通过Index位域直接表示。只能由Malloc等库函数处理，不能由TAGPTR直接生成。
+
+固定尺寸标记指针：F-Sizede2的幂次方大小的内存对象。TAGPTR表示修改指令可以生成的标记指针，必须符合权限单调性原则。
+
+固定类型标记指针：基本类型的指针，PtrType指定指针类型，指针类型具有固定的尺寸和对齐。RA表示裸指针Raw Pointer。固定类型标志指针不能进行指针算数运算。TAGPTR可以生成的标记指针，必须符合权限单调性原则。
+
+下图阐明了RV32T/RV64T的线性地址格式，表1解释了标记各个字段的含义。
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
@@ -22,25 +32,22 @@
 
 如果标记位域是0x00或者0xFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
 
-虚拟地址最高位如果清0，表示标记位域是Centroid Hased Object Table模式。
+线性地址最高位如果清0，表示标记位域是描述符表标记指针。
 
 T如果清0，则表示访问局部对象表；如果置1，则表示访问全局对象表。（TODO：暂不实现，默认清0）。
 
 S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小和对齐内存块的中间点地址。
-S-Size必须大于0，并且必须小于24。当S-Size位域大于等于24时，Table表示对象表的最低8个表项索引。
+S-Size必须大于0，并且必须小于24。
 
-虚拟地址最高位如果置1，表示标记位域是Radix-block模式。
+当S-Size位域大于等于24时，指针是描述符寄存器标记指针，Index位域表示8个描述符CSR寄存器的索引。
 
-W表示读写权限：
-0表示只读权限（read-only）；
-1表示可读可写权限（Write-read）。
+线性地址最高位如果置1，表示标记位域是固定尺寸标记指针模式。
+
+W表示读写权限：清0表示只读权限（read-only）；置1表示可读可写权限（Write-read）。
 
 F-Size表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Size幂次方。F-Size必须小于24.
+
 当F-Size位域大于24时，PtrType表示指针类型类(TODO)，不能进行指针运算操作。PtrType不能等于7.
-
-NT表示Non-Terminal, 支持Saturation
-RA表示Raw Pointer，原始指针，不进行除读写之外的任何检查。
-
 PtrType
 0: 1B
 1: 2B
@@ -48,6 +55,10 @@ PtrType
 100: 4B
 ...
 110: Pointer usize
+
+NT表示Non-Terminal, 支持Saturation
+
+RA表示Raw Pointer，原始指针，不进行除读写和偏移操作之外的任何检查。
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
@@ -64,32 +75,9 @@ PtrType
 
 如果标记位域是0x0000或者0xFFFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
 
-虚拟地址最高位如果清0，表示标记位域是Centroid Hased Object Table模式。
+S-Size必须大于0，并且必须小于48。当S-Size位域大于等于48时，Index表示16个对象描述符寄存器索引。
 
-T如果清0，则表示访问局部对象表；如果置1，则表示访问全局对象表。（TODO：暂不实现，默认清0）。
-
-S-Size表示Address所在内存对象的Centroid-ID是2的S-Size幂次方大小和对齐内存块的中间点地址。
-S-Size必须大于0，并且必须小于48。当S-Size位域大于等于48时，Index表示对象表的最低16个表项索引。
-
-W表示读写权限：
-0表示只读权限（read-only）；
-1表示可读可写权限（Write-read）。
-
-虚拟地址最高位如果置1，表示标记位域是Radix-block模式。
-
-F-Size表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Size幂次方。
 F-Size必须小于48.当F-Size位域大于48时，PtrType指针类型，（TODO），不能进行指针运算操作，PtrType不能等于15.
-
-NT表示Non-Terminal, 支持Saturation
-RA表示Raw Pointer，原始指针，不进行除读写之外的任何检查。
-
-PtrType
-0: 1B
-1: 2B
-10: 3B
-100: 4B
-...
-110: Pointer usize
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
@@ -162,11 +150,15 @@ BR: Borrow;
 
 越界例外：如果在ld/st指令的地址超出rs1定义的内存对象边界，则产生边界溢出例外。
 
-偏移例外：PtrType类型指针进行指针运算，产生偏移例外。
+偏移例外：固定类型指针进行指针算数运算，产生偏移例外。
+
+单调例外：TAGPTR指令的目标尺寸大于原内存对象尺寸产生的例外。
 
 访问例外。access secure fault
 
-读写例外：对read-only(W=0)指针执行store类指令。
+读写例外：利用read-only(W=0)指针执行store类指令。
+
+
 
 <<<
 == RV32T/RV64T 指令详解
