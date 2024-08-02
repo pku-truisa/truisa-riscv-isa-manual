@@ -30,7 +30,7 @@
    8+^|0xFF                              18+^|Address
 |===
 
-如果标记位域是0x00或者0xFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
+如果标记位域是0x00或者0xFF，则表示该指针为兼容指针，在安全模式下表示指针非法。
 
 线性地址最高位如果清0，表示标记位域是描述符表标记指针。
 
@@ -73,7 +73,7 @@ RA表示Raw Pointer，原始指针，不进行除读写和偏移操作之外的�
   12+^|0xFFFF                                               14+^|Address
 |===
 
-如果标记位域是0x0000或者0xFFFF，则表示改指针为兼容指针，在安全模式下表示指针非法。
+如果标记位域是0x0000或者0xFFFF，则表示该指针为兼容指针，在安全模式下表示指针非法。
 
 S-Size必须大于0，并且必须小于48。当S-Size位域大于等于48时，Index表示16个对象描述符寄存器索引。
 
@@ -85,17 +85,25 @@ F-Size必须小于48.当F-Size位域大于48时，PtrType指针类型，（TODO�
   26+^|*RV32T对象描述符格式*
       |31   |30    |29    |28    |27|26|25|24   |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
    1+^|V 1+^|NT 1+^|W  1+^|IN 4+^|ObjType   18+^|Base Address 
-   1+^|P 1+^|FR 1+^|BR 5+^|PageSize         18+^|Bound Address 
+   1+^|P 1+^|BR 1+^|RC 1+^|FR 5+^|PageSize  18+^|Bound Address 
 
 |===
 
-V: Valid
-NT: Non-Terminal
-W: Writeable
-IN: Initial
-P: Page/Range
-FR: Free
-BR: Borrow
+V: Valid，描述符表项是否有效。
+
+NT: Non-Terminal，是否是‘空’表示结尾的流数据（如字符串）。
+
+W: Writeable，是否可写。
+
+IN: Initial，是否已经初始化
+
+P: Page/Range，虚实地址转换是采用区间表还是页表，PageSize表示在页表模式下的页大小。
+
+FR: Freed，已经被释放，不能进行读写，需要额外的机制，决定是否能被释放。
+
+BR: Borrow，存在指针被借用的可能，需要额外的机制，检查时间内存安全。
+
+RC: Reference Count，是否是智能指针
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
@@ -103,16 +111,8 @@ BR: Borrow
   26+^|*RV64T对象描述符格式*
       |63   |62    |61    |60    |59|58|57|56|55   |54|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
    1+^|V 1+^|NT 1+^|W  1+^|IN 5+^|ObjType       3+^|Reserved  14+^|Address 
-   1+^|P 1+^|FR 1+^|BR 6+^|PageSize             3+^|Reserved  14+^|Address 
+   1+^|P 1+^|BR 1+^|ST 1+^|FR 5+^|PageSize      3+^|Reserved  14+^|Address 
 |===
-
-V: Valid;
-NT: Non-Terminal;
-W: Writeable
-IN: Initial;
-P: Page/Range;
-FR: Free;
-BR: Borrow;
 
 <<<
 == TruISA-RISC-V 指令编码
@@ -157,6 +157,10 @@ BR: Borrow;
 访问例外。access secure fault
 
 读写例外：利用read-only(W=0)指针执行store类指令。
+
+释放例外：对已经释放的对象进行访问。
+
+初值例外：对未初始化的对象进行访问。
 
 
 
