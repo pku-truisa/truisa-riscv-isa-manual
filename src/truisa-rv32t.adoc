@@ -11,7 +11,7 @@
 
 描述符寄存器标记指针：存在相对应的CSR描述符寄存器，RV32T共有8个，RV64T共有16个，通过Index位域直接表示。只能由Malloc等库函数处理，不能由TAGPTR直接生成。
 
-固定尺寸标记指针：F-Sizede2的幂次方大小的内存对象。TAGPTR表示修改指令可以生成的标记指针，必须符合权限单调性原则。
+固定尺寸标记指针：F-Sizede2的幂次方大小的内存对象。TAGPTR标记修改指令可以生成的标记指针，必须符合权限单调性原则。此类指针应该由编译保证不会产生时间内存例外。
 
 固定类型标记指针：基本类型的指针，PtrType指定指针类型，指针类型具有固定的尺寸和对齐。RA表示裸指针Raw Pointer。固定类型标志指针不能进行指针算数运算。TAGPTR可以生成的标记指针，必须符合权限单调性原则。
 
@@ -38,8 +38,8 @@
   12+^|0x0000                                               14+^|Address
    1+^|0 1+^|T  1+^|W  6+^|S-Size             3+^|Key       14+^|Address 
    1+^|0 1+^|T  1+^|W  2+^|11  4+^|Index      3+^|Key       14+^|Address 
-   1+^|1 1+^|NT 1+^|W  6+^|F-Size             3+^|Key       14+^|Address
-   1+^|1 1+^|RA 1+^|W  2+^|11  4+^|PtrType    3+^|Key       14+^|Address
+   1+^|1 1+^|NT 1+^|W  6+^|F-Size             3+^|Reserved  14+^|Address
+   1+^|1 1+^|RA 1+^|W  2+^|11  4+^|PtrType    3+^|Reserved  14+^|Address
   12+^|0xFFFF                                               14+^|Address
 |===
 
@@ -89,9 +89,9 @@ Key表示MallocID，说明该对象所在的内存区域被内存分配的次数
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T对象描述符格式*
-      |31   |30    |29    |28|27|26|25|24   |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   1+^|V 1+^|NT 1+^|W  5+^|ObjType      18+^|Base Address 
-   1+^|P 1+^|IN 1+^|FR 5+^|PageSize     18+^|Bound Address 
+      |31   |30    |29    |28    |27    |26|25|24     |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
+   1+^|V 1+^|NT 1+^|W  1+^|IN 1+^|FR 3+^|ObjType  18+^|Bound Address 
+   1+^|P 5+^|PageSize                2+^|Reserved 18+^|Base Address 
 
 |===
 
@@ -99,11 +99,10 @@ Key表示MallocID，说明该对象所在的内存区域被内存分配的次数
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T对象描述符格式*
-      |63   |62    |61    |60|59|58|57|56|55   |54|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
-   1+^|V 1+^|NT 1+^|W  6+^|ObjType          3+^|Key       14+^|Address 
-   1+^|P 1+^|IN 1+^|FR 6+^|PageSize         3+^|Reserved  14+^|Address 
+      |63   |62    |61    |60    |59    |58|57 |56|55   |54|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
+   1+^|V 1+^|NT 1+^|W  1+^|IN 1+^|FR 4+^|ObjType     3+^|Key       14+^|Bound Address 
+   1+^|P 6+^|PageSize                       5+^|Reserved           14+^|Base Address 
 |===
-
 
 V: Valid，描述符表项是否有效。
 
@@ -151,7 +150,7 @@ Key: MallocID Key
 == RV32T/RV64T 例外
 地址例外。address secure fault
 
-标记例外：如果标记是0x00或者0xFF则产生非法标记例外；如果指针计算结果的标记与rs1的标记不相同则产生标记完整性例外。
+标记例外：如果标记中S-Size全0；PtrType全1；如果指针计算结果的标记与源指针（rs1）的标记不相同则产生标记完整性例外。
 
 越界例外：如果在ld/st指令的地址超出rs1定义的内存对象边界，则产生边界溢出例外。
 
@@ -161,13 +160,11 @@ Key: MallocID Key
 
 访问例外。access secure fault
 
-读写例外：利用read-only(W=0)指针执行store类指令。
+读写例外：利用read-only(W=0)指针执行store类指令。指针W标记与描述符中W违反单调性原则（大于）。指针NT标记与描述符NT不符。
 
 释放例外：对已经释放的对象进行访问。
 
 初值例外：对未初始化的对象进行访问。
-
-
 
 <<<
 == RV32T/RV64T 指令详解
@@ -184,12 +181,15 @@ Key: MallocID Key
 3.1.15. Machine Cause Register (mcause)
 |===
 |Interrupt |Exception |priority |Code Description
-|0         |24        |as 0     |Instruction address secure fault
-|0         |25        |as 1     |Instruction access  secure fault
-|0         |28        |as 4     |Load address secure fault
-|0         |29        |as 5     |Load access  secure fault
-|0         |30        |as 6     |Store/AMO address secure fault
-|0         |31        |as 7     |Store/AMO access  secure fault
+|0         |32        |as 0     |Instruction address secure fault
+|0         |33        |as 1     |Instruction access  secure fault
+|0         |36        |as 4     |Load address secure fault
+|0         |37        |as 5     |Load access  secure fault
+|0         |38        |as 6     |Store/AMO address secure fault
+|0         |39        |as 7     |Store/AMO access  secure fault
+|0         |44        |as 0     |Instruction object fault
+|0         |45        |as 4     |Load object fault
+|0         |47        |as 6     |Instruction object fault
 |===
 
 3.1.18. Machine Environment Configuration Register (menvcfg)
@@ -207,8 +207,8 @@ Local Object Table Register (Future)
 
 Global Object Table Register (Future)
 
-8个 Object Descriptor CSR in RV32T (Future)
+8个 Object Descriptor CSR in RV32T (like as PMP? Future)
 
-16个 Ojbect Descriptor CSR in RV64T (Future)
+16个 Ojbect Descriptor CSR in RV64T (like as PMP? Future)
 
-32个 Object Descriptor CSR in RV128T (Future)
+32个 Object Descriptor CSR in RV128T (like as PMP? Future)
