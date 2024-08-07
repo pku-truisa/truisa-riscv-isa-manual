@@ -21,26 +21,26 @@
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T标记指针格式*
-      |31   |30    |29   |28|27 |26 |25|24   |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   8+^|0x00                              18+^|Address
-   1+^|0 1+^|T  1+^|W 5+^|S-Size         18+^|Address 
-   1+^|0 1+^|T  1+^|W 2+^|11 3+^|Index   18+^|Address 
-   1+^|1 1+^|NT 1+^|W 5+^|F-Size         18+^|Address
-   1+^|1 1+^|RA 1+^|W 2+^|11 3+^|PtrType 18+^|Address
-   8+^|0xFF                              18+^|Address
+      |31   |30    |29|28 |27|26|25   |24       |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
+   8+^|0x00                                 18+^|Address
+   1+^|0 1+^|W  5+^|S-Size         1+^|PL  18+^|Address 
+   1+^|0 1+^|W  2+^|11 3+^|Index   1+^|PL  18+^|Address 
+   1+^|1 1+^|W  5+^|F-Size         1+^|NT   18+^|Address
+   1+^|1 1+^|W  2+^|11 3+^|PtrType 1+^|RA   18+^|Address
+   8+^|0xFF                                 18+^|Address
 |===
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T标记指针格式*
-      |63   |62    |61    |60|59  |58|57|56|55   |54|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
-  12+^|0x0000                                               14+^|Address
-   1+^|0 1+^|T  1+^|W  6+^|S-Size             3+^|Key       14+^|Address 
-   1+^|0 1+^|T  1+^|W  2+^|11  4+^|Index      3+^|Key       14+^|Address 
-   1+^|1 1+^|NT 1+^|W  6+^|F-Size             3+^|Reserved  14+^|Address
-   1+^|1 1+^|RA 1+^|W  2+^|11  4+^|PtrType    3+^|Reserved  14+^|Address
-  12+^|0xFFFF                                               14+^|Address
+      |63   |62    |61|60|59|...|56     |55    |54 |53|...|48      |47|46|45|44|...|...|7|6|5|4|3|2|1|0
+  12+^|0x0000                                                  14+^|Address
+   1+^|0 1+^|W  5+^|S-Size           2+^|PL     3+^|Key      14+^|Address 
+   1+^|0 1+^|W  2+^|11   3+^|Index   2+^|PL     3+^|Key      14+^|Address 
+   1+^|1 1+^|W  5+^|F-Size           1+^|NT 4+^|hints    14+^|Address
+   1+^|1 1+^|W  2+^|11   3+^|PtrType 1+^|RA 4+^|Reserved 14+^|Address
+  12+^|0xFFFF                                                  14+^|Address
 |===
 
 RV32T标记
@@ -91,7 +91,7 @@ Key表示MallocID，说明该对象所在的内存区域被内存分配的次数
   26+^|*RV32T对象描述符格式*
       |31   |30    |29    |28    |27    |26|25|24     |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
    1+^|V 1+^|PL 1+^|NT 1+^|IN 1+^|FR 3+^|ObjType  18+^|Bound Address 
-   1+^|P 5+^|PageSize               2+^|Reserved 18+^|Base Address 
+   1+^|P 5+^|PageSize                2+^|Reserved 18+^|Base Address 
 
 |===
 
@@ -99,9 +99,9 @@ Key表示MallocID，说明该对象所在的内存区域被内存分配的次数
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T对象描述符格式*
-      |63   |62|61  |60    |59    |58    |57 |56|55      |54|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
-   1+^|V 2+^|PL  1+^|NT 1+^|IN 1+^|FR 3+^|ObjType     3+^|Key       14+^|Bound Address 
-   1+^|P 6+^|PageSize                     5+^|Reserved              14+^|Base Address 
+      |63   |62|61  |60    |59    |58    |57 |56|55|54    |53|...|48     |47|46|45|...|...|7|6|5|4|3|2|1|0
+   1+^|V 2+^|PL  1+^|NT 1+^|IN 1+^|FR 4+^|ObjType      3+^|Key       13+^|Bound Address 
+   1+^|P 6+^|PageSize                     6+^|hints                  13+^|Base Address 
 |===
 
 V: Valid，描述符表项是否有效。
@@ -160,7 +160,11 @@ Key: MallocID Key
 
 访问例外。access secure fault
 
-读写例外：利用read-only(W=0)指针执行store类指令。指针W标记与描述符中W违反单调性原则（大于）。指针NT标记与描述符NT不符。
+读写例外：利用read-only(W=0)指针执行store类指令。
+
+特权例外：
+
+类型例外：
 
 释放例外：对已经释放的对象进行访问。
 
