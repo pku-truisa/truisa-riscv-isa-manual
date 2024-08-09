@@ -26,7 +26,7 @@
    1+^|0 1+^|W  5+^|S-Radix        1+^|PL   18+^|Address 
    1+^|0 1+^|W  2+^|11 3+^|Reg     1+^|PL   18+^|Address 
    1+^|1 1+^|W  5+^|F-Radix        1+^|NT   18+^|Address
-   1+^|1 1+^|W  2+^|11 3+^|PtrType 1+^|0    18+^|Address
+   1+^|1 1+^|W  2+^|11 3+^|PtrType 1+^|RA   18+^|Address
    8+^|0xFF                                 18+^|Address
 |===
 
@@ -39,7 +39,7 @@
    1+^|0 1+^|W  5+^|S-Radix          2+^|PL       3+^|Key        14+^|Address 
    1+^|0 1+^|W  2+^|11   3+^|Reg     2+^|PL       3+^|Reserved   14+^|Address 
    1+^|1 1+^|W  5+^|F-Radix          1+^|NT 1+^|0 3+^|hints      14+^|Address
-   1+^|1 1+^|W  2+^|11   3+^|PtrType 1+^|0  1+^|0 3+^|Reserved   14+^|Address
+   1+^|1 1+^|W  2+^|11   3+^|PtrType 1+^|RA 1+^|0 3+^|Reserved   14+^|Address
   12+^|0xFFFF                                                    14+^|Address
 |===
 
@@ -48,8 +48,6 @@ RV32T标记
 如果标记位域是0x00或者0xFF，则表示该指针为兼容指针，在安全模式下表示指针非法。
 
 线性地址最高位如果清0，表示标记位域是描述符表标记指针。
-
-T如果清0，则表示访问局部对象表；如果置1，则表示访问全局对象表。（TODO：暂不实现，默认清0）。
 
 S-Radix表示Address所在内存对象的Centroid-ID是2的S-Radix幂次方大小和对齐内存块的中间点地址。
 S-Radix必须大于0，并且必须小于24。
@@ -69,9 +67,14 @@ PtrType
 10: 3B
 100: 4B
 ...
+101: Func Pointer
 110: Pointer usize
 
+PL表示指针的特权级，Pointer Privilege Level (PPL)
+
 NT表示Non-Terminal, 支持Saturation
+
+RA表示裸指针（Raw Pointer），可以进行偏移计算
 
 RV64T标记：
 
@@ -82,6 +85,8 @@ S-Radix必须大于0，并且必须小于48。当S-Radix位域大于等于48时�
 F-Radix必须小于48.当F-Radix位域大于48时，PtrType指针类型，（TODO），不能进行指针运算操作，PtrType不能等于15.
 
 Key表示MallocID，说明该对象所在的内存区域被内存分配的次数，用来解决Use-After-Free问题。当Key达到最大值时，该内存区域所在的内存不能在用来分配给相同尺寸的对象了。
+
+Hints用于指示微体系结构的特性（Future）
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
@@ -104,7 +109,7 @@ Key表示MallocID，说明该对象所在的内存区域被内存分配的次数
 
 V: Valid，描述符表项是否有效。
 
-PL：特权级
+PL：特权级，Object Privilege Level (OPL)
 
 NT: Non-Terminal，是否是‘空’表示结尾的流数据（如字符串）。
 
@@ -114,7 +119,9 @@ IN: Initial，是否已经初始化
 
 FR: Freed，已经被释放，不能进行读写，需要额外的机制，决定是否能被释放。
 
-Key: MallocID Key
+Key: 表示MallocID，说明该对象所在的内存区域被内存分配的次数，用来解决Use-After-Free问题。当Key达到最大值时，该内存区域所在的内存不能在用来分配给相同尺寸的对象了。
+
+Hints: 用于指示微体系结构的特性（Future）
 
 <<<
 == TruISA-RISC-V 指令编码
@@ -137,9 +144,10 @@ Key: MallocID Key
  4+^|0010100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|INCPTR
  4+^|0010100        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|MVPTR
  4+^|0110100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|DECPTR
- 4+^|0011000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|RDXPTR
+ 4+^|0011000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|TAGPTR
  4+^|0011001        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|INTPTR
- 4+^|0011010        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|ANDTAG
+ 4+^|0011010        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|RDXPTR
+ 4+^|0011011        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|ANDTAG
  4+^|0011100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|LDOLBD
  4+^|0111100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|LDOLBI
  4+^|0011101        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|INVOLBD
@@ -154,9 +162,9 @@ Key: MallocID Key
 
 越界例外：如果在ld/st指令的地址超出rs1定义的内存对象边界，则产生边界溢出例外。
 
-偏移例外：固定类型指针进行指针算数运算，产生偏移例外。
+偏移例外：固定类型指针进行指针算数运算，产生偏移例外，裸指（RA）针除外。
 
-单调例外：TAGPTR指令的目标尺寸大于原内存对象尺寸产生的例外。
+单调例外：TAGPTR/RDXPTR指令的目标尺寸大于原内存对象尺寸产生的例外。
 
 访问例外。access secure fault
 
@@ -164,9 +172,9 @@ Key: MallocID Key
 
 特权例外：Max(RPL, CPL) < = OPL
 
-类型例外：Data/Code Object (Future)
+类型例外：PtrType与指令类型不符，Data/Code访问与ObjType不符
 
-释放例外：对已经释放的对象进行访问。
+释放例外：对已经释放的对象进行访问，或者MallocID不相同。
 
 初值例外：对未初始化的对象进行访问。
 
