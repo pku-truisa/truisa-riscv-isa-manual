@@ -26,7 +26,7 @@
    1+^|0 1+^|W  5+^|S-Radix        1+^|PL   18+^|Address 
    1+^|0 1+^|W  2+^|11 3+^|Reg     1+^|PL   18+^|Address 
    1+^|1 1+^|W  5+^|F-Radix        1+^|NT   18+^|Address
-   1+^|1 1+^|W  2+^|11 3+^|PtrType 1+^|RA   18+^|Address
+   1+^|1 1+^|W  2+^|11 3+^|PtrType 1+^|NR   18+^|Address
    8+^|0xFF                                 18+^|Address
 |===
 
@@ -34,29 +34,27 @@
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T标记指针格式*
-      |63   |62    |61|60|59|...|56     |55    |54   |53|...|48      |47|46|45|44|...|...|7|6|5|4|3|2|1|0
-  12+^|0x0000                                                    14+^|Address
-   1+^|0 1+^|W  5+^|S-Radix          2+^|PL       3+^|Key        14+^|Address 
-   1+^|0 1+^|W  2+^|11   3+^|Reg     2+^|PL       3+^|Reserved   14+^|Address 
-   1+^|1 1+^|W  5+^|F-Radix          1+^|NT 1+^|0 3+^|hints      14+^|Address
-   1+^|1 1+^|W  2+^|11   3+^|PtrType 1+^|RA 1+^|0 3+^|Reserved   14+^|Address
-  12+^|0xFFFF                                                    14+^|Address
+      |63   |62    |61|60|59|...|56     |55    |54    |53|...|48    |47|46|45|44|...|...|7|6|5|4|3|2|1|0
+  12+^|0x0000                                                   14+^|Address
+   1+^|0 1+^|W  5+^|S-Radix          2+^|PL        3+^|Key      14+^|Address 
+   1+^|0 1+^|W  2+^|11   3+^|Reg     2+^|PL        3+^|Reserved 14+^|Address 
+   1+^|1 1+^|W  5+^|F-Radix          1+^|0  1+^|NT 3+^|hints    14+^|Address
+   1+^|1 1+^|W  2+^|11   3+^|PtrType 1+^|0  1+^|NR 3+^|Reserved 14+^|Address
+  12+^|0xFFFF                                                   14+^|Address
 |===
 
 RV32T标记
 
 如果标记位域是0x00或者0xFF，则表示该指针为兼容指针，在安全模式下表示指针非法。
 
-线性地址最高位如果清0，表示标记位域是描述符表标记指针。
+线性地址最高位如果清0，表示标记位域是描述符表标记指针。线性地址最高位如果置1，表示标记位域是固定尺寸标记指针模式。
+
+W表示读写权限：清0表示只读权限（read-only）；置1表示可读可写权限（Write-read）。
 
 S-Radix表示Address所在内存对象的Centroid-ID是2的S-Radix幂次方大小和对齐内存块的中间点地址。
 S-Radix必须大于0，并且必须小于24。
 
 当S-Radix位域大于等于24时，指针是描述符寄存器标记指针，Reg位域表示8个描述符Reg寄存器的索引。
-
-线性地址最高位如果置1，表示标记位域是固定尺寸标记指针模式。
-
-W表示读写权限：清0表示只读权限（read-only）；置1表示可读可写权限（Write-read）。
 
 F-Radix表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Radix幂次方。F-Radix必须小于24.
 
@@ -72,9 +70,11 @@ PtrType
 
 PL表示指针的特权级，Pointer Privilege Level (PPL)
 
-NT表示Non-Terminal, 支持Saturation
+NT表示Non-Terminal, 支持Saturation；
 
-RA表示裸指针（Raw Pointer），可以进行偏移计算
+NR表示不是裸指针（Not Raw Pointer），不可以可以进行偏移计算；
+
+Reg 转换到 S-Radix 转换到 F-Radix 转换到 PtrType
 
 RV64T标记：
 
@@ -111,7 +111,7 @@ V: Valid，描述符表项是否有效。
 
 PL：特权级，Object Privilege Level (OPL)
 
-NT: Non-Terminal，是否是‘空’表示结尾的流数据（如字符串）。
+NT: Null-Terminal，是否是‘空’表示结尾的流数据（如字符串）。
 
 P: Page/Range，虚实地址转换是采用区间表还是页表，PageSize表示在页表模式下的页大小。
 
@@ -147,7 +147,7 @@ Hints: 用于指示微体系结构的特性（Future）
  4+^|0011000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|TAGPTR
  4+^|0011001        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|INTPTR
  4+^|0011010        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|RDXPTR
- 4+^|0011011        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|ANDTAG
+ 4+^|0011011        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|ANDPERM
  4+^|0011100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|LDOLBD
  4+^|0111100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|LDOLBI
  4+^|0011101        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|INVOLBD
@@ -164,7 +164,7 @@ Hints: 用于指示微体系结构的特性（Future）
 
 偏移例外：固定类型指针进行指针算数运算，产生偏移例外，裸指（RA）针除外。
 
-单调例外：TAGPTR/RDXPTR指令的目标尺寸大于原内存对象尺寸产生的例外。
+单调例外：TAGPTR/RDXPTR指令的目标尺寸大于原内存对象尺寸产生的例外
 
 访问例外。access secure fault
 
@@ -208,9 +208,9 @@ Hints: 用于指示微体系结构的特性（Future）
 
 |===
 |Bit       |Character |Description
-|16        |MSTE      | Memory Safety Trap Enable
-|17        |MSICKE    | Memory Safety Instruction Check Enable
-|18        |MSDCKE    | Memory Safety Data Check Enable
+|16        |MSTE      | Memory Safety Check Enable
+|17        |MSICTE    | Memory Safety Instruction Check Trap Enable
+|18        |MSDCTE    | Memory Safety Data Trap Check Trap Enable
 |===
 
 待定设计
