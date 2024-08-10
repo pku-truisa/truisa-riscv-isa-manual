@@ -92,9 +92,9 @@ Hints用于指示微体系结构的特性（Future）
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T对象描述符格式*
-      |31   |30    |29    |28    |27    |26|25|24     |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   1+^|V 1+^|NT 1+^|IN 1+^|FR 3+^|ObjType  1+^|PL 18+^|Bound Address 
-   1+^|P 5+^|PageSize  2+^|Hints                  18+^|Base Address 
+      |31   |30    |29    |28    |27|26    |25   |24     |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
+   1+^|V 1+^|NT 1+^|IN 1+^|FR 2+^|Perms 1+^|0 1+^|PL 18+^|Bound Address 
+   1+^|P 5+^|PageSize  2+^|Reserved                  18+^|Base Address 
 
 |===
 
@@ -102,9 +102,9 @@ Hints用于指示微体系结构的特性（Future）
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T对象描述符格式*
-      |63   |62    |61    |60    |59|58|57|56|55|54    |53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
-   1+^|V 1+^|NT 1+^|IN 1+^|FR 4+^|ObjType 2+^|PL    3+^|Key   13+^|Bound Address 
-   1+^|P 6+^|PageSize                  3+^|Reserved 3+^|Hints 13+^|Base Address 
+      |63   |62    |61    |60    |59   |58|57    |56   |55|54    |53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
+   1+^|V 1+^|NT 1+^|IN 1+^|FR 1+^|0 2+^|Perms 1+^|0 2+^|PL    3+^|Key   13+^|Bound Address 
+   1+^|P 6+^|PageSize                         3+^|Reserved    3+^|Hints 13+^|Base Address 
 |===
 
 V: Valid，描述符表项是否有效。
