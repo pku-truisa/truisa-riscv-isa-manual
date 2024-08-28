@@ -23,10 +23,10 @@
   26+^|*RV32T标记指针格式*
       |31   |30|29 |28|27|26   |25   |24       |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
    8+^|0x00                                18+^|Address
-   1+^|0 5+^|S-Radix        1+^|W 1+^|SL   18+^|Address 
-   1+^|0 2+^|11 3+^|Reg     1+^|W 1+^|SL   18+^|Address 
+   1+^|0 5+^|S-Radix        1+^|W 1+^|R    18+^|Address 
+   1+^|0 2+^|11 3+^|Reg     1+^|W 1+^|R    18+^|Address 
    1+^|1 5+^|F-Radix        1+^|W 1+^|NT   18+^|Address
-   1+^|1 2+^|11 3+^|PtrType 1+^|W 1+^|RA   18+^|Address
+   1+^|1 2+^|11 3+^|PtrType 1+^|W 1+^|MA   18+^|Address
    8+^|0xFF                                18+^|Address
 |===
 
@@ -36,10 +36,10 @@
   26+^|*RV64T标记指针格式*
       |63   |62|61 |60|...|57  |56   |55    |54|53|...|48 |47|46|45|44|...|...|7|6|5|4|3|2|1|0
   12+^|0x0000                                         14+^|Address
-   1+^|0 5+^|S-Radix        1+^|W 1+^|SL 4+^|Reserved 14+^|Address 
-   1+^|0 2+^|11 3+^|Reg     1+^|W 1+^|SL 4+^|Reserved 14+^|Address 
+   1+^|0 5+^|S-Radix        1+^|W 1+^|R  4+^|Reserved 14+^|Address 
+   1+^|0 2+^|11 3+^|Reg     1+^|W 1+^|R  4+^|Reserved 14+^|Address 
    1+^|1 5+^|F-Radix        1+^|W 1+^|NT 4+^|Reserved 14+^|Address
-   1+^|1 2+^|11 3+^|PtrType 1+^|W 1+^|RA 4+^|Reserved 14+^|Address
+   1+^|1 2+^|11 3+^|PtrType 1+^|W 1+^|MA 4+^|Reserved 14+^|Address
   12+^|0xFFFF                                         14+^|Address
 |===
 
@@ -49,8 +49,7 @@ RV32T标记
 
 线性地址最高位如果清0，表示标记位域是描述符表标记指针。线性地址最高位如果置1，表示标记位域是固定尺寸标记指针模式。
 
-W/X/R表示读写执行权限
-SL: Sealed，任何操作产生例外
+WR表示读写执行权限
 
 S-Radix表示Address所在内存对象的Centroid-ID是2的S-Radix幂次方大小和对齐内存块的中间点地址。
 S-Radix必须大于0，并且必须小于24。
@@ -71,7 +70,7 @@ PtrType
 
 NT表示Non-Terminal, 支持Saturation；
 
-RA表示指针（Raw Pointer），不可以可以进行偏移计算；
+表示指针（Raw Pointer），不可以可以进行偏移计算；
 
 Reg 转换到 S-Radix 转换到 F-Radix 转换到 PtrType
 
