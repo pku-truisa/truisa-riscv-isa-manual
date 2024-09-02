@@ -7,78 +7,79 @@
 
 四种类型的标记指针：
 
-描述符表标记指针：在对象描述符表中存在相对应的描述符表项，采用形心标记的哈希对象表。通过S-Radix和Address寄存器形心标记。只能由Malloc等库函数处理，不能由TAGPTR直接生成。
+描述符表标记指针（S-Radix)：在对象描述符表中存在相对应的描述符表项，采用形心标记的哈希对象表。通过S-Radix和Address有硬件计算形心标记。该类型指针只能由Malloc等库函数生成，不能由用户程序直接生成。描述符表也有库函数和操作系统管理。
 
-描述符寄存器标记指针：存在相对应的Reg描述符寄存器，RV32T共有8个，RV64T共有16个，通过Reg位域直接表示。只能由Malloc等库函数处理，不能由TAGPTR直接生成。
+描述符寄存器标记指针（RegIndex)：存在相对应的Reg描述符CSR寄存器，RV32T共有8个，RV64T共有16个，通过Reg位域直接索引。只能由Malloc等库函数或者操作系统生成，不能由用户程序直接生成。该类寄存器建议存储一些固定对象，如数据段、代码段、系统段等等。（Future，暂不实现）
 
-固定尺寸标记指针：F-Radixde2的幂次方大小的内存对象。TAGPTR标记修改指令可以生成的标记指针，必须符合权限单调性原则。此类指针应该由编译保证不会产生时间内存例外。
+固定尺寸标记指针（F-Radix）：F-Radix指定的2的幂次方大小的内存对象。用户程序可以通过标记修改指令生成的标记指针，必须符合权限单调性原则。
 
-固定类型标记指针：基本类型的指针，PtrType指定指针类型，指针类型具有固定的尺寸和对齐。固定类型标志指针不能进行指针算数运算。TAGPTR可以生成的标记指针，必须符合权限单调性原则。
+固定类型标记指针（PtrType）：基本类型的指针，PtrType指定指针所指数据的类型位宽（2的PtrType个字节）。固定类型标志指针不能进行指针算数运算。用户程序可以通过标记修改指令生成的标记指针，必须符合权限单调性原则。
 
-下图阐明了RV32T/RV64T的线性地址格式，表1解释了标记各个字段的含义。
+基本原则：对小数据对象采用F-Radix指针，对基本数据类型采用PtrType类型，对特殊数据段采用Reg-Index类型，其他都采用S-Radix类型。
+
+下图阐明了RV32T/RV64T的标记指针格式，表1解释了标记各个字段的含义。
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T标记指针格式*
-      |31   |30|29 |28|27|26   |25   |24       |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   8+^|0x00                                18+^|Address
-   1+^|0 5+^|S-Radix        1+^|W 1+^|R    18+^|Address 
-   1+^|0 2+^|11 3+^|Reg     1+^|W 1+^|R    18+^|Address 
-   1+^|1 5+^|F-Radix        1+^|W 1+^|NT   18+^|Address
-   1+^|1 2+^|11 3+^|PtrType 1+^|W 1+^|R    18+^|Address
-   8+^|0xFF                                18+^|Address
+      |31   |30|29 |28|27|26     |25    |24      |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
+   8+^|0x00                                  18+^|Address
+   1+^|0 5+^|S-Radix          1+^|R  1+^|W   18+^|Address 
+   1+^|0 2+^|11 3+^|RegIndex  1+^|R  1+^|W   18+^|Address 
+   1+^|1 5+^|F-Radix          1+^|NT 1+^|W   18+^|Address
+   1+^|1 2+^|11 3+^|PtrType   1+^|R  1+^|W   18+^|Address
+   8+^|0xFF                                  18+^|Address
 |===
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T标记指针格式*
-      |63   |62|61 |60|...|57  |56   |55    |54|53|...|48 |47|46|45|44|...|...|7|6|5|4|3|2|1|0
-  12+^|0x0000                                         14+^|Address
-   1+^|0 5+^|S-Radix        1+^|W 1+^|R  4+^|Reserved 14+^|Address 
-   1+^|0 2+^|11 3+^|Reg     1+^|W 1+^|R  4+^|Reserved 14+^|Address 
-   1+^|1 5+^|F-Radix        1+^|W 1+^|NT 4+^|Reserved 14+^|Address
-   1+^|1 2+^|11 3+^|PtrType 1+^|W 1+^|R  4+^|Reserved 14+^|Address
-  12+^|0xFFFF                                         14+^|Address
+      |63   |62|61 |60|...|57   |56    |55   |54|53|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
+  12+^|0x0000                                              14+^|Address
+   1+^|0 5+^|S-Radix         1+^|R  1+^|W 4+^|Reserved     14+^|Address 
+   1+^|0 2+^|11 3+^|RegIndex 1+^|R  1+^|W 4+^|Reserved     14+^|Address 
+   1+^|1 5+^|F-Radix         1+^|NT 1+^|W 4+^|Reserved     14+^|Address
+   1+^|1 2+^|11 3+^|PtrType  1+^|R  1+^|W 4+^|Reserved     14+^|Address
+  12+^|0xFFFF                                              14+^|Address
 |===
 
-RV32T标记
+RV32T标记说明：
 
-如果标记位域是0x00或者0xFF，则表示该指针为兼容指针，在安全模式下表示指针非法。
+如果标记位域是0x00或者0xFF，则表示该指针为线性地址，非标记指针。否则，
 
-线性地址最高位如果清0，表示标记位域是描述符表标记指针。线性地址最高位如果置1，表示标记位域是固定尺寸标记指针模式。
+线性地址最高位如果清0，表示标记位域是描述符表标记指针。线性地址最高位如果置1，表示标记位域是固定尺寸标记指针模式，其中：
 
-WR表示读写执行权限
+W和R表示读写执行权限
 
-S-Radix表示Address所在内存对象的Centroid-ID是2的S-Radix幂次方大小和对齐内存块的中间点地址。
+S-Radix表示Address所在内存对象的Centroid标识是2的S-Radix幂次方大小和对齐内存块的中间点地址。
 S-Radix必须大于0，并且必须小于24。
 
-当S-Radix位域大于等于24时，指针是描述符寄存器标记指针，Reg位域表示8个描述符Reg寄存器的索引。
+当S-Radix位域大于等于24时，是描述符寄存器标记指针，RegIndex位域表示8个描述符CSR寄存器的索引号。
 
 F-Radix表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Radix幂次方。F-Radix必须小于24.
 
-当F-Radix位域大于24时，PtrType表示指针类型类(TODO)，不能进行指针运算操作。PtrType不能等于7.
-PtrType表示基本类型的字节数。
+当F-Radix位域大于24时，PtrType表示指针类型数据的位宽（2的PtrType个字节），该类型指针不能进行指针运算操作。PtrType不能等于7.
 
-NT表示Non-Terminal, 支持Saturation；
+NT表示Non-Terminal, 支持Saturation地址生成模式；
 
-Reg 转换到 S-Radix 转换到 F-Radix 转换到 PtrType
+RV64T标记指针说明：
 
-RV64T标记：
+如果标记位域是0x0000或者0xFFFF，则表示该指针为线性地址，非标记指针。否则，
 
-如果标记位域是0x0000或者0xFFFF，则表示该指针为兼容指针，在安全模式下表示指针非法。
+S-Radix必须大于0，并且必须小于48。当S-Radix位域大于等于48时，RegIndex表示16个对象描述符CSR寄存器索引。
 
-S-Radix必须大于0，并且必须小于48。当S-Radix位域大于等于48时，Reg表示16个对象描述符寄存器索引。
+F-Radix必须小于48.当F-Radix位域大于48时，PtrType指针类型数据的位宽（字节数），不能进行指针运算操作，PtrType不能等于15.
 
-F-Radix必须小于48.当F-Radix位域大于48时，PtrType指针类型，不能进行指针运算操作，PtrType不能等于15.
+下表表示RV32T和RV64T的描述符格式
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T对象描述符格式*
       |31   |30    |29    |28    |27    |26    |25   |24     |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   1+^|V 1+^|NT 1+^|IN 1+^|FR 1+^|X  1+^|W  1+^|R 1+^|PL 18+^|Bound Address 
+   1+^|V 1+^|NT 1+^|IN 1+^|FR 1+^|X  1+^|R  1+^|W  1+^|PL 18+^|Bound Address 
    1+^|P 5+^|PageSize  2+^|Reserved                      18+^|Base Address 
 |===
 
@@ -87,7 +88,7 @@ F-Radix必须小于48.当F-Radix位域大于48时，PtrType指针类型，不能
 |===
   26+^|*RV64T对象描述符格式*
       |63   |62    |61    |60    |59   |58    |57   |56    |55|54        |53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
-   1+^|V 1+^|NT 1+^|IN 1+^|FR 1+^|X 1+^|W  1+^|R 2+^|PL 4+^|Reserved 13+^|Bound Address 
+   1+^|V 1+^|NT 1+^|IN 1+^|FR 1+^|X 1+^|R  1+^|W 2+^|PL 4+^|Reserved 13+^|Bound Address 
    1+^|P 6+^|PageSize                            6+^|Reserved        13+^|Base Address 
 |===
 
@@ -95,17 +96,15 @@ V: Valid，描述符表项是否有效。
 
 NT: Null-Terminal，是否是‘空’表示结尾的流数据（如字符串）。
 
-IN: Initial，是否已经初始化
+IN: Initial，对象是否已经初始化
 
-FR: Freed，已经被释放，不能进行读写，需要额外的机制，决定是否能被释放。
+FR: Freed，对象是否已经被释放。
 
-XRW: Execute/Read/Write
+X、W、R: Execute/Read/Write
 
-预留未来应用。
+PL：特权级，Object Privilege Level (OPL) (Future，默认RV32T为1、RV64T为3，即用户权限)
 
-PL：特权级，Object Privilege Level (OPL) (Future，默认为3)
-
-P: Page/Range，虚实地址转换是采用区间表还是页表，PageSize表示在页表模式下的页大小。
+P: Page/Range，虚实地址转换是采用区间表还是页表，PageSize表示，在页表模式下的页大小，在区间模式下表示mmap()函数生成的区域Centroid表示计算S-Radix，用来索引Range Table。
 
 <<<
 == TruISA-RISC-V 指令编码
@@ -132,43 +131,87 @@ P: Page/Range，虚实地址转换是采用区间表还是页表，PageSize表�
  4+^|0111000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|BOUNDPTR
  4+^|0011001        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|INTPTR
  4+^|0011010        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|ANDPERM
-// 4+^|0011011        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|SEALPTR
-// 4+^|0111011        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|UNSEALPTR 
- 4+^|0011100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|LDOLBD
- 4+^|0111100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|LDOLBI
- 4+^|0011101        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|INVOLBD
- 4+^|0111101        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|INVOLBI
+ 4+^|0011101        2+^|rs2   2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|LDOLBD
+ 4+^|0111101        2+^|rs2   2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|LDOLBI
+ 4+^|0011110        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|INVOLBD
+ 4+^|0111110        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|INVOLBI
 |===
 
 <<<
 == RV32T/RV64T 例外
-地址例外。address secure fault
 
-标记例外：如果标记中S-Radix全0；PtrType全1；如果指针计算结果的标记与源指针（rs1）的标记不相同则产生标记完整性例外。
+标记检查TC：如果标记中，描述符表标记指针的S-Radix全0；固定类型标记指针的PtrType全1；如果指针计算结果的标记与源指针（rs1）的标记不相同则产生标记完整性违例。
 
-越界例外：如果在ld/st指令的地址超出rs1定义的内存对象边界，则产生边界溢出例外。
+越界检查OC：如果在indptr等指针运算指令和ld/st类指令的地址运算超出rs1定义的内存对象边界，则产生边界溢出违例。TAGPTR/BOUNDPTR指令的目标内存区域超出原内存对象内存区域的单调违例。固定类型指针进行指针算数运算的偏移违例。ld/st类指令，如果指针或者描述符表中NT为1，则计算结果等于上界（加法）或下界（减法）。
 
-偏移例外：固定类型指针进行指针算数运算，产生偏移例外，裸指（RA）针除外。
+越权检查PC：指令内存操作与指针和描述符权限不符，CPL大于OPL，读写权限设定不符合单调性。
 
-单调例外：TAGPTR/RDXPTR指令的目标内存区域超出原内存对象内存区域的例外
+释放检查FC：对已经释放的对象进行访问
 
-访问例外。access secure fault
+初值检查IC：对未初始化的对象进行访问。
 
-读写例外：指令内存操作与指针和描述符权限不符。
+|===
+|Instruction |TC |OC |PC |FC |IC |违例动作
+|INCPTRI     |Y  |Y  |N  |N  |N  |标记清0
+|TAGPTRI     |Y  |Y  |Y  |N  |N  |标记清0
+|LPTR        |Y  |Y  |Y  |Y  |Y  |访存处理
+|SPTR        |Y  |Y  |Y  |Y  |Y  |访存处理
+|SUBPTR      |N  |N  |N  |N  |N  |无
+|PTRTAG      |N  |N  |N  |N  |N  |无
+|PTRINT      |N  |N  |N  |N  |N  |无
+|PTRBASE     |N  |N  |N  |N  |N  |无
+|PTRBOUN     |N  |N  |N  |N  |N  |无
+|PTROID      |N  |N  |N  |N  |N  |无
+|SLTUPTR     |N  |N  |N  |N  |N  |无
+|INCPTR      |Y  |Y  |N  |N  |N  |标记清0
+|MVPTR       |N  |N  |N  |N  |N  |无
+|DECPTR      |Y  |Y  |N  |N  |N  |标记清0
+|TAGPTR      |Y  |Y  |Y  |N  |N  |标记清0
+|BOUNDPT     |Y  |Y  |N  |N  |N  |标记清0
+|INTPTR      |Y  |Y  |N  |N  |N  |标记清0
+|ANDPERM     |Y  |N  |N  |N  |N  |标记清0
+|LDOLBD      |N  |N  |N  |N  |N  |无
+|LDOLBI      |N  |N  |N  |N  |N  |无
+|INVOLBD     |Y  |N  |N  |N  |N  |无操作
+|INVOLBI     |Y  |N  |N  |N  |N  |无操作
+|LD/ST       |Y  |Y  |Y  |Y  |Y  |访存处理
+|===
 
-类型例外：PtrType与指令类型不符。
-
-释放例外：对已经释放的对象进行访问
-
-初值例外：对未初始化的对象进行访问。
-
-未来预留：
-
-特权例外：CPL <= OPL
-
+访存处理：如果MSDCTE是1则发出例外，否则如果指针内或者描述符中NT是1则越上界访问上界越下界访问下界，否则无任何操作。
 
 <<<
 == RV32T/RV64T 指令详解
+
+指针运算指令：
+
+INCPTR/INCPTRI/DECPTR：进行地址运算，并进行标记检查和边界检查。
+
+SUBPTR/STLUPTR：只对线性地址进行减法和无符号比较操作，不进行任何检查。
+
+MVPTR：不进行任何检查，简单的复制操作。
+
+标记产生指令
+
+TAGPTR/TAGPTRI，将源操作数的低TLEN位数据复制到目的操作数的高TLEN位中，进行标记检查，越界检查和越权检查，保证单调性。
+
+BOUNDPTR:将源操作数的低radix位域数据复制到目的操作数的radix位域，保持权限位域不变，进行越界检查，保证单调性。
+
+INTPTR:将源操作数的线性地址复制到目的操作数的线性地址，保持标记不变，进行越界检查，保证单调性。
+
+ANDPERM：将源操作数的低2位和指针的权限位域（W或R)进行按位与操作，F-Radix类型只对W位域进行位与操作。
+
+标记提取指令：
+
+PTRTAG/PTRBASE/PTRBOUND/PTROID：将相应位域复制到目标的最低位。
+
+访存指令：
+
+进行相应的访存操作，进行所有检查，如果MSDCTE是1则发出例外，否则如果指针内或者描述符中NT是1则越上界访问上界越下界访问下界，否则无任何操作。
+
+对象快表指令：
+
+LDOLBD/LDOLBI指令，将rs1和rs2作为描述符的高低64位数据，插入OLB中。
+INVOLBD/INVOLBI指令，将rs1中地址所指的OLB表项设为无效，进行标记检查，是否是描述符表标记指针类型S-Radix。
 
 <<<
 == RV32T/RV64T CSR详解
@@ -198,8 +241,9 @@ P: Page/Range，虚实地址转换是采用区间表还是页表，PageSize表�
 |===
 |Bit       |Character |Description
 |16        |MSICTE    |Memory Safety Instruction Trap Enable
-|17        |MSTE      |Memory Safety Data Check Enable
+//|17        |MSTE      |Memory Safety Instruction Check Enable
 |18        |MSDCTE    |Memory Safety Data Trap Enable
+//|19        |MSTE      |Memory Safety Data Check Enable
 
 |===
 
