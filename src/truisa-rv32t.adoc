@@ -23,26 +23,26 @@
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T标记指针格式*
-      |31   |30|29 |28|27|26     |25    |24      |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   8+^|0x00                                  18+^|Address
-   1+^|0 5+^|S-Radix          1+^|R  1+^|W   18+^|Address 
-   1+^|0 2+^|11 3+^|RegIndex  1+^|R  1+^|W   18+^|Address 
-   1+^|1 5+^|F-Radix          1+^|R  1+^|W   18+^|Address
-   1+^|1 2+^|11 3+^|PtrType   1+^|R  1+^|W   18+^|Address
-   8+^|0xFF                                  18+^|Address
+      |31   |30|29 |28|27|26     |25     |24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
+   7+^|0x00                          19+^|Address
+   1+^|0 5+^|S-Radix          1+^|W  19+^|Address 
+   1+^|0 2+^|11 3+^|RegIndex  1+^|W  19+^|Address 
+   1+^|1 5+^|F-Radix          1+^|W  19+^|Address
+   1+^|1 2+^|11 3+^|PtrType   1+^|W  19+^|Address
+   7+^|0xFF                          19+^|Address
 |===
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T标记指针格式*
-      |63   |62|61 |60|...|57   |56    |55   |54|53|...|48     |47|46|45|44|...|...|7|6|5|4|3|2|1|0
-  12+^|0x0000                                              14+^|Address
-   1+^|0 5+^|S-Radix         1+^|R  1+^|W 4+^|Reserved     14+^|Address 
-   1+^|0 2+^|11 3+^|RegIndex 1+^|R  1+^|W 4+^|Reserved     14+^|Address 
-   1+^|1 5+^|F-Radix         1+^|R  1+^|W 4+^|Reserved     14+^|Address
-   1+^|1 2+^|11 3+^|PtrType  1+^|R  1+^|W 4+^|Reserved     14+^|Address
-  12+^|0xFFFF                                              14+^|Address
+      |63   |62|61 |60|58|59|57 |56    |55|...|...|49|48|47|46|45|...|...|7|6|5|4|3|2|1|0
+   8+^|0x0000                      18+^|Address
+   1+^|0 6+^|S-Radix         1+^|W 18+^|Address 
+   1+^|0 2+^|11 4+^|RegIndex 1+^|W 18+^|Address 
+   1+^|1 6+^|F-Radix         1+^|W 18+^|Address
+   1+^|1 2+^|11 4+^|PtrType  1+^|W 18+^|Address
+   8+^|0xFFFF                      18+^|Address
 |===
 
 RV32T标记说明：
@@ -85,17 +85,17 @@ PtrType不能等于15，否则是非法标记，产生标记违例。
 |===
   26+^|*RV32T对象描述符格式*
       |31   |30    |29    |28    |27    |26    |25   |24      |23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   1+^|V 1+^|NT 1+^|IN 1+^|FR 1+^|X  1+^|R  1+^|W  1+^|PL 18+^|Bound Address 
-   1+^|P 5+^|PageSize  2+^|Reserved                       18+^|Base Address 
+   1+^|V 1+^|NT 1+^|IN 1+^|FR 1+^|X  1+^|R  1+^|W   19+^|Bound Address 
+   1+^|P 5+^|PageSize                       1+^|PL  19+^|Base Address 
 |===
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T对象描述符格式*
-      |63   |62    |61    |60    |59   |58    |57   |56    |55|54        |53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
-   1+^|V 1+^|NT 1+^|IN 1+^|FR 1+^|X 1+^|R  1+^|W 2+^|PL 4+^|Reserved 13+^|Bound Address 
-   1+^|P 6+^|PageSize                            6+^|Reserved        13+^|Base Address 
+      |63   |62    |61    |60    |59   |58    |57   |56     |55|54        |53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
+   1+^|V 1+^|NT 1+^|IN 1+^|FR 1+^|Na 1+^|X 1+^|R  1+^|W  18+^|Bound Address 
+   1+^|P 6+^|PageSize                            1+^|PL 18+^|Base Address 
 |===
 
 V: Valid，描述符表项是否有效。
