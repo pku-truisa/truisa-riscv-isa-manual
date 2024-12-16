@@ -1,6 +1,8 @@
 [[truisa-rv32t]]
 == RV32T/RV64T的标记指针
 
+RV32T/RV64T的非特权和特权功能继承Cheri-RISC-V的定义，但权能指针（Capability）采用Tagged Pointer形式，指针位宽与RISC-V ABI兼容。
+
 在RV32T/RV64T中，线性地址采用标记指针(Tagged Pointer)格式，将内存对象的元数据信息以压缩编码的形式保存在线性地址高TLEN的未使用位域中。
 标记指针由两部分组成：标记(Tag)位域和线性地址位域(Address)。
 在RV32T中，标记位域是6比特，TLEN=6，线性地址是26比特。在Rv64T中，标记位域是7比特，TLEN=7，线性地址是57比特。
@@ -18,10 +20,11 @@ TruISA定义了2种类型的标记指针：
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
-  26+^|*RV32T标记指针格式 (25比特线性地址）*
+  26+^|*RV32T标记指针格式 (26比特线性地址）*
       |31   |30|29 |28|27|26|25     |24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
    6+^|0x00                     20+^|Address   
    1+^|0 5+^|F-Radix            20+^|Address   
+   1+^|1 5+^|0x00               20+^|Address 
    1+^|1 5+^|S-Radix            20+^|Address 
    6+^|0x3F                     20+^|Address
 |===
@@ -29,10 +32,11 @@ TruISA定义了2种类型的标记指针：
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
-  26+^|*RV64T标记指针格式（56比特线性地址）*
+  26+^|*RV64T标记指针格式（57比特线性地址）*
       |63   |62|61 |60|58|59|57|56     |55|...|...|49|48|47|46|45|...|...|7|6|5|4|3|2|1|0
    7+^|0x00                        19+^|Address
    1+^|0 6+^|F-Radix               19+^|Address 
+   1+^|1 6+^|0x00                  19+^|Address
    1+^|1 6+^|S-Radix               19+^|Address
    7+^|0x7F                        19+^|Address
 |===
@@ -51,6 +55,8 @@ F-Radix表示Address所在内存对象是固定大小的内存块，块大小和
 
 F-Radix大于0，小于等于26，否则是非法标记，产生标记违例。
 
+标记位域是0x20，表示字节标记指针，不允许进行指针运算。
+
 RV64T标记指针说明：
 
 如果标记位域是0x00或0x7F，则表示该指针为线性地址，非标记指针。否则，
@@ -58,6 +64,8 @@ RV64T标记指针说明：
 S-Radix大于0，小于等于58，否则是非法标记，产生标记违例。
 
 F-Radix大于0，小于等于58，否则是非法标记，产生标记违例。
+
+标记位域是0x40，表示字节标记指针，不允许进行指针运算。
 
 下表表示RV32T和RV64T的描述符格式
 
@@ -89,143 +97,150 @@ X、W、R: Execute/Read/Write
 
 PL：特权级，Object Privilege Level (OPL) (Future，默认RV32T为1、RV64T为3，即用户权限)
 
-<<<
-== TruISA-RISC-V 指令编码
+== TruISA-RISC-V的指令
+去除Cheri-RISC-V中所有关于Perm, Type, Seal, Flags, Top, Tag-Memory相关的指令。
 
-[%autowidth.stretch,float="center",align="center",cols="^2m,^2m,^2m,^2m,<2m,>3m, <4m, >4m, <4m, >4m, <4m, >4m, <4m, >4m, <6m"]
-|===
-    |31 |27 |26  |25    |24 |  20|19  |  15| 14  |  12|11      |      7|6   |   0|
-15+^|*RV32T Base Instruction Set*
- 6+^|imm[11:0]                2+^|rs1   2+^|101    2+^|rd           2+^|0001111 <|INCPTRI
- 6+^|imm[11:0]                2+^|rs1   2+^|110    2+^|rd           2+^|0001111 <|TAGPTRI
- 6+^|imm[11:0]                2+^|rs1   2+^|111    2+^|rd           2+^|0001111 <|LPTR
- 4+^|imm[11:5]      2+^|rs2   2+^|rs1   2+^|111    2+^|imm[4:0]     2+^|0100011 <|SPTR
- 4+^|0100000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|SUBPTR
- 4+^|0000100        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|PTRTAG
- 4+^|0000101        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|PTRINT
- 4+^|0000110        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|PTRBASE
- 4+^|0100110        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|PTRBOUND
- 4+^|0001100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|SLTUPTR
- 4+^|0010100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|INCPTR
- 4+^|0010100        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|MVPTR
- 4+^|0110100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|DECPTR
- 4+^|0011000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|TAGPTR
- 4+^|0011001        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|INTPTR
- 4+^|0011010        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|SIZEPTR
- 4+^|0011011        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|0001111 <|ROPTR
- 4+^|0011101        2+^|rs2   2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|LDOLBD
- 4+^|0111101        2+^|rs2   2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|LDOLBI
- 4+^|0011110        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|INVOLBD
- 4+^|0111110        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|0001111 <|INVOLBI
-|===
+== TruISA-RISC-V的例外
+标记指针运算指令如果产生错误，结果将Tag位域(High)符号扩展，清全0或者置全1
 
-<<<
-== RV32T/RV64T 例外
-
-标记检查TC：如果标记全1，或者描述符表标记指针的S-Radix全0；TAGPTR/ANDPERMS违反RW单调性原则。TAGPTR/SIZEPTR/INTPTR指令的目标内存区域超出原内存对象内存区域的单调违例。
-
-越界检查BC：如果在indptr等指针运算指令和ld/st类指令的地址运算超出rs1定义的内存对象边界，则产生边界溢出违例。如果指针计算结果的标记与源指针（rs1）的标记不相同则产生标记完整性违例。
-
-越权检查PC：指令内存操作与对象描述符权限不符和；对已经释放的对象进行访问；对未初始化的对象进行访问。
-
-|===
-|Instruction |TC |BC |PC |违例动作
-|INCPTR      |Y  |Y  |N  |符号扩展
-|DECPTR      |Y  |Y  |N  |符号扩展
-|INCPTRI     |Y  |Y  |N  |符号扩展
-|TAGPTR      |Y  |Y  |Y  |符号扩展
-|TAGPTRI     |Y  |Y  |Y  |符号扩展
-|INTPTR      |Y  |Y  |N  |符号扩展
-|SIZEPTR     |Y  |Y  |N  |符号扩展
-|ANDPERM     |Y  |N  |N  |符号扩展
-|LPTR        |Y  |Y  |Y  |访存违例处理
-|SPTR        |Y  |Y  |Y  |访存违例处理
-|LD/ST/AMO   |Y  |Y  |Y  |访存违例处理
-|SUBPTR      |N  |N  |N  |无违例
-|PTRTAG      |N  |N  |N  |无违例
-|PTRINT      |N  |N  |N  |无违例
-|PTRBASE     |N  |N  |N  |无违例
-|PTRBOUN     |N  |N  |N  |无违例
-|SLTUPTR     |N  |N  |N  |无违例
-|MVPTR       |N  |N  |N  |无违例
-|LDOLBD      |N  |N  |N  |无违例
-|LDOLBI      |N  |N  |N  |无违例
-|INVOLBD     |N  |N  |N  |无违例
-|INVOLBI     |N  |N  |N  |无违例
-|===
-
-*访存违例处理：如果SDATE是1则发出例外，否则无任何操作。
-
-<<<
-== RV32T/RV64T 指令详解
-
-1. 指针运算指令：
-
-* INCPTR/INCPTRI/DECPTR：进行指针运算，结果位指针类型，并进行标记检查和越界检查。如违例，标记清0。
-
-* SUBPTR/STLUPTR：只对线性地址进行减法和无符号比较操作，结果为整数类型，不进行任何检查。
-
-* MVPTR：简单的复制操作，结果为指针类型，不进行任何检查。。
-
-2. 标记产生指令
-
-* TAGPTR/TAGPTRI：将源操作数的低TLEN位数据复制到目的操作数的高TLEN位中，进行标记检查，越界检查和越权检查，保证单调性。
-
-* INTPTR:将源操作数的线性地址复制到目的操作数的线性地址，进行越界检查，保证单调性。
-
-* SIZEPTR:将源操作数的低radix位域数据复制到目的操作数的radix位域，保持权限位域不变，进行越界检查，保证单调性。
-
-* ANDPERM：将源操作数的低2位和指针的权限位域（W或R)进行按位与操作，F-Radix类型只对W位域进行位与操作。
-
-3. 标记提取指令：
-
-* PTRTAG/PTRBASE/PTRBOUND：将相应位域复制到目标的最低位。
-
-4. 访存指令：
-
-* 进行相应的访存操作，进行所有检查，如果DATE是1则发出例外，否则如果指针内或者描述符中NT是1则越上界访问上界越下界访问下界，否则无任何操作。
-
-5. 对象快表指令：
-
-* LDOLBD/LDOLBI指令，将rs1和rs2作为描述符的高低64位数据，插入OLB中。
-* INVOLBD/INVOLBI指令，将rs1中地址所指的OLB表项设为无效，进行标记检查，是否是描述符表标记指针类型S-Radix。
-
-<<<
-== RV32T/RV64T CSR详解
-
-3.1.1. Machine ISA Register misa
-|===
-|Bit       |Character |Description
-|19        |T         |RV32/64T base ISA
-|===
-
-3.1.15. Machine Cause Register (mcause)
-|===
-|Interrupt |Exception |priority |Code Description
-|0         |32        |as 1     |Instruction tag violation
-|0         |33        |as 1     |Instruction permission violation
-|0         |34        |as 1     |Instruction bound violation
-|0         |35        |as 5     |Load/Store/AMO tag violation
-|0         |36        |as 5     |Load permission violation
-|0         |37        |as 5     |Load bound violation
-|0         |38        |as 5     |Store/AMO permission violation
-|0         |39        |as 5     |Store/AMO bound violation
-|0         |44        |as 1     |Instruction object fault
-|0         |45        |as 5     |Date object fault
-//|0         |46        |as 0     |Pointer operation fault
-|===
-
-3.1.18. Machine Environment Configuration Register (menvcfg)
-
-|===
-|Bit       |Character |Description
-|16        |SIATE      |Secure Instruction Trap Enable
-|17        |SDATE      |Secure Data Trap Enable
-//|18        |SPOTE      |Secure Pointer Operation Trap Enable
-|===
-
-待定设计：
-
-8个 Object Descriptor CSR in RV32T (Future)
-
-16个 Ojbect Descriptor CSR in RV64T (Future)
+// <<<
+// == TruISA-RISC-V 指令编码
+// 
+// [%autowidth.stretch,float="center",align="center",cols="^2m,^2m,^2m,^2m,<2m,// >3m, <4m, >4m, <4m, >4m, <4m, >4m, <4m, >4m, <6m"]
+// |===
+//     |31 |27 |26  |25    |24 |  20|19  |  15| 14  |  12|11      |      7|// 6   |   0|
+// 15+^|*RV32T Base Instruction Set*
+//  6+^|imm[11:0]                2+^|rs1   2+^|101    2+^|rd           2+^|// 0001111 <|INCPTRI
+//  6+^|imm[11:0]                2+^|rs1   2+^|110    2+^|rd           2+^|// 0001111 <|TAGPTRI
+//  6+^|imm[11:0]                2+^|rs1   2+^|111    2+^|rd           2+^|// 0001111 <|LPTR
+//  4+^|imm[11:5]      2+^|rs2   2+^|rs1   2+^|111    2+^|imm[4:0]     2+^|// 0100011 <|SPTR
+//  4+^|0100000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|SUBPTR
+//  4+^|0000100        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|PTRTAG
+//  4+^|0000101        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|PTRINT
+//  4+^|0000110        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|PTRBASE
+//  4+^|0100110        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|PTRBOUND
+//  4+^|0001100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|SLTUPTR
+//  4+^|0010100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|INCPTR
+//  4+^|0010100        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|MVPTR
+//  4+^|0110100        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|DECPTR
+//  4+^|0011000        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|TAGPTR
+//  4+^|0011001        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|INTPTR
+//  4+^|0011010        2+^|rs2   2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|SIZEPTR
+//  4+^|0011011        2+^|00000 2+^|rs1   2+^|011    2+^|rd           2+^|// 0001111 <|ROPTR
+//  4+^|0011101        2+^|rs2   2+^|rs1   2+^|011    2+^|00000        2+^|// 0001111 <|LDOLBD
+//  4+^|0111101        2+^|rs2   2+^|rs1   2+^|011    2+^|00000        2+^|// 0001111 <|LDOLBI
+//  4+^|0011110        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|// 0001111 <|INVOLBD
+//  4+^|0111110        2+^|00000 2+^|rs1   2+^|011    2+^|00000        2+^|// 0001111 <|INVOLBI
+// |===
+// 
+// <<<
+// == RV32T/RV64T 例外
+// 
+// 标记检查TC：如果标记全1，或者描述符表标记指针的S-Radix全0；TAGPTR/ANDPERMS违反RW单调// 性原则。TAGPTR/SIZEPTR/INTPTR指令的目标内存区域超出原内存对象内存区域的单调违例。
+// 
+// 越界检查BC：如果在indptr等指针运算指令和ld/st类指令的地址运算超出rs1定义的内存对象边// 界，则产生边界溢出违例。如果指针计算结果的标记与源指针（rs1）的标记不相同则产生标记完// 整性违例。
+// 
+// 越权检查PC：指令内存操作与对象描述符权限不符和；对已经释放的对象进行访问；对未初始化的// 对象进行访问。
+// 
+// |===
+// |Instruction |TC |BC |PC |违例动作
+// |INCPTR      |Y  |Y  |N  |符号扩展
+// |DECPTR      |Y  |Y  |N  |符号扩展
+// |INCPTRI     |Y  |Y  |N  |符号扩展
+// |TAGPTR      |Y  |Y  |Y  |符号扩展
+// |TAGPTRI     |Y  |Y  |Y  |符号扩展
+// |INTPTR      |Y  |Y  |N  |符号扩展
+// |SIZEPTR     |Y  |Y  |N  |符号扩展
+// |ANDPERM     |Y  |N  |N  |符号扩展
+// |LPTR        |Y  |Y  |Y  |访存违例处理
+// |SPTR        |Y  |Y  |Y  |访存违例处理
+// |LD/ST/AMO   |Y  |Y  |Y  |访存违例处理
+// |SUBPTR      |N  |N  |N  |无违例
+// |PTRTAG      |N  |N  |N  |无违例
+// |PTRINT      |N  |N  |N  |无违例
+// |PTRBASE     |N  |N  |N  |无违例
+// |PTRBOUN     |N  |N  |N  |无违例
+// |SLTUPTR     |N  |N  |N  |无违例
+// |MVPTR       |N  |N  |N  |无违例
+// |LDOLBD      |N  |N  |N  |无违例
+// |LDOLBI      |N  |N  |N  |无违例
+// |INVOLBD     |N  |N  |N  |无违例
+// |INVOLBI     |N  |N  |N  |无违例
+// |===
+// 
+// *访存违例处理：如果SDATE是1则发出例外，否则无任何操作。
+// 
+// <<<
+// == RV32T/RV64T 指令详解
+// 
+// 1. 指针运算指令：
+// 
+// * INCPTR/INCPTRI/DECPTR：进行指针运算，结果位指针类型，并进行标记检查和越界检查。如// 违例，标记清0。
+// 
+// * SUBPTR/STLUPTR：只对线性地址进行减法和无符号比较操作，结果为整数类型，不进行任何检// 查。
+// 
+// * MVPTR：简单的复制操作，结果为指针类型，不进行任何检查。。
+// 
+// 2. 标记产生指令
+// 
+// * TAGPTR/TAGPTRI：将源操作数的低TLEN位数据复制到目的操作数的高TLEN位中，进行标记检// 查，越界检查和越权检查，保证单调性。
+// 
+// * INTPTR:将源操作数的线性地址复制到目的操作数的线性地址，进行越界检查，保证单调性。
+// 
+// * SIZEPTR:将源操作数的低radix位域数据复制到目的操作数的radix位域，保持权限位域不变，// 进行越界检查，保证单调性。
+// 
+// * ANDPERM：将源操作数的低2位和指针的权限位域（W或R)进行按位与操作，F-Radix类型只对W// 位域进行位与操作。
+// 
+// 3. 标记提取指令：
+// 
+// * PTRTAG/PTRBASE/PTRBOUND：将相应位域复制到目标的最低位。
+// 
+// 4. 访存指令：
+// 
+// * 进行相应的访存操作，进行所有检查，如果DATE是1则发出例外，否则如果指针内或者描述符中// NT是1则越上界访问上界越下界访问下界，否则无任何操作。
+// 
+// 5. 对象快表指令：
+// 
+// * LDOLBD/LDOLBI指令，将rs1和rs2作为描述符的高低64位数据，插入OLB中。
+// * INVOLBD/INVOLBI指令，将rs1中地址所指的OLB表项设为无效，进行标记检查，是否是描述符// 表标记指针类型S-Radix。
+// 
+// <<<
+// == RV32T/RV64T CSR详解
+// 
+// 3.1.1. Machine ISA Register misa
+// |===
+// |Bit       |Character |Description
+// |19        |T         |RV32/64T base ISA
+// |===
+// 
+// 3.1.15. Machine Cause Register (mcause)
+// |===
+// |Interrupt |Exception |priority |Code Description
+// |0         |32        |as 1     |Instruction tag violation
+// |0         |33        |as 1     |Instruction permission violation
+// |0         |34        |as 1     |Instruction bound violation
+// |0         |35        |as 5     |Load/Store/AMO tag violation
+// |0         |36        |as 5     |Load permission violation
+// |0         |37        |as 5     |Load bound violation
+// |0         |38        |as 5     |Store/AMO permission violation
+// |0         |39        |as 5     |Store/AMO bound violation
+// |0         |44        |as 1     |Instruction object fault
+// |0         |45        |as 5     |Date object fault
+// //|0         |46        |as 0     |Pointer operation fault
+// |===
+// 
+// 3.1.18. Machine Environment Configuration Register (menvcfg)
+// 
+// |===
+// |Bit       |Character |Description
+// |16        |SIATE      |Secure Instruction Trap Enable
+// |17        |SDATE      |Secure Data Trap Enable
+// //|18        |SPOTE      |Secure Pointer Operation Trap Enable
+// |===
+// 
+// 待定设计：
+// 
+// 8个 Object Descriptor CSR in RV32T (Future)
+// 
+// 16个 Ojbect Descriptor CSR in RV64T (Future)
+// 
