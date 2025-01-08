@@ -81,6 +81,12 @@ F-Radix大于0，小于等于57，大于57的值都按57处理。
 
 下表表示RV32T和RV64T的描述符格式(草案，第一阶段，只保留Bound, Base，其他权限部分先不实现)
 
+处理器应该包含若干条目的对象描述符表缓冲器（Object Descriptor Buffer)，如果标记指针是描述符表格式，则采用Centroid动态的查找ODB，如果查找不到（Miss），则发出例外。
+
+Capability Exception Codes增加0x20，作为ODB失效的例外ODBMissViolation。（Cheriot手册图7.3）
+
+如果发生例外，应该查找malloc中的对象表，重新插入ODB。如果对象被释放（Free），应该插入Limit为0的描述符。
+
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
@@ -116,6 +122,8 @@ V: Valid，描述符表项是否有效。
  2+^|1111111        2+^|01111 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetAddr 
  2+^|1111111        2+^|10111 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetHigh
  2+^|1111111        2+^|11000 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetLimit
+ 2+^|0000001        2+^|src   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSpecialRW
+ 2+^|0000010        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CInsertODB
  2+^|0001000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetBounds
  2+^|0010000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetAddr
  2+^|0010001        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CIncAddr
@@ -169,3 +177,7 @@ V: Valid，描述符表项是否有效。
 5. 标记指针访存指令：
 
 * 对地址计算进行所有检查，对于访存数据不做任何检查，如违例则发出例外。
+
+6. 对象描述符缓冲器插入指令
+
+* 将cs1作为base，rs2作为limit，形成的描述符，插入Object Descriptor Buffer中，如果limit为0，描述符无效。
