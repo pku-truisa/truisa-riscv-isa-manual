@@ -90,7 +90,7 @@ Capability Exception Codes增加0x20，作为ODB失效的例外ODBMissViolation�
 |===
   26+^|*RV32T对象描述符格式*
       |31   |30   |29 |28 |27    |26|25|24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   1+^|R 1+^|W 4+^|Reserved  20+^|Base Address 
+   6+^|Reserved              20+^|Base Address 
    6+^|Reserved              20+^|Limit Address 
 |===
 
@@ -99,7 +99,7 @@ Capability Exception Codes增加0x20，作为ODB失效的例外ODBMissViolation�
 |===
   26+^|*RV64T对象描述符格式*
       |63   |62    |61 |60 |59 |58 |57     |56|55|54|53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
-   1+^|R 1+^|W 5+^|Reserved            19+^|Base Address 
+   7+^|Reserved                        19+^|Base Address 
    7+^|Reserved                        19+^|Limit Address
 |===
 
@@ -118,11 +118,11 @@ CSR寄存器
 URO +
 URO 
 |`uotp` +
-`odbentrybase` +
-`odbentrylimit`
+`odbentrylimit` +
+`odbentrybase`
 |Object Descriptor Buffer Exceptions. +
-Object Descriptor Buffer Entry base. +
-Object Descriptor Buffer Entry limit.
+Object Descriptor Buffer Entry limit. +
+Object Descriptor Buffer Entry base.
 |===
 
 == TruISA-RISC-V的指令
@@ -142,7 +142,7 @@ Object Descriptor Buffer Entry limit.
  2+^|1111111        2+^|01111 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetAddr
  2+^|1111111        2+^|11000 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetLimit
  2+^|0000001        2+^|src   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSpecialRW
- 2+^|0000100        2+^|rs2   2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|TSetDescriptor
+ 2+^|0000100        2+^|rs2   2+^|rs1   2+^|011    2+^|cd           2+^| 0001111 <|TSetDescriptor
  2+^|0001000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetBounds
  2+^|0010000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetAddr
  2+^|0010001        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CIncAddr
@@ -196,10 +196,8 @@ Object Descriptor Buffer Entry limit.
 
 6. 对象描述符缓冲器指令
 
-* TSetDescriptor指令，将cs1作为base，rs2作为limit和读写权限，生成标记指针写入cd，描述如写入默认csr寄存器对（odbentryhi, odbentrylo)中。
-进行cs1的标记指针格式检查。
-进行单一性检查。(base,limit)不能超出cs1的边界范围，limit中的读写权限不能超出cs1的读写权限（如果有）。
+* TSetDescriptor指令，将rs1作为base，rs2作为limit，生成标记指针写入cd，描述如写入默认csr寄存器对（odbentrybase, odbentrylimit)中。
 
-* TODBW指令，将指定的csr寄存器对（odbentryhi, odbentrylo）写入ODB中。
+* TODBW指令，将指定的csr寄存器对（odbentrybase, odbentrylimit）写入ODB中。
 
 * TFENCE.VMA指令，flush ODB，rs2和cs1的功能和SFENCE.VMA类似。
