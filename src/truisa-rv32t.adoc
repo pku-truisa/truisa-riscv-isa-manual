@@ -79,7 +79,7 @@ F-Radix大于0，小于等于57，大于57的值都按57处理。
 
 下表表示RV32T和RV64T的描述符格式(草案，第一阶段，只保留Bound, Base，其他权限部分先不实现)
 
-处理器应该包含多余8个条目的ODB，如果标记指针是描述符表格式，则采用Centroid动态的查找ODB，如果查找不到（Miss），则发出例外。
+处理器应该包含8个以上条目的ODB，如果标记指针是描述符表格式，则采用Centroid动态的查找ODB，如果查找不到（Miss），则发出例外。
 
 Capability Exception Codes增加0x20，作为ODB失效的例外ODBMissViolation。（Cheriot手册图7.3）
 
@@ -113,16 +113,24 @@ CSR寄存器
 
 |`0x080` +
 `0x081` +
-`0x082`
+`0x082` +
+`0x083` +
+`0x084` +
 |URW +
 URO +
-URO 
+URO +
+URO +
+URO
 |`uotp` +
-`odbentrylimit` +
-`odbentrybase`
+`odblimitwrite` +
+`odbbasewrite` +
+`odblimitread` +
+`odbbaseread`
 |Object Descriptor Buffer Exceptions. +
-Object Descriptor Buffer Entry limit. +
-Object Descriptor Buffer Entry base.
+Object Descriptor Buffer Entry limit Write Port. +
+Object Descriptor Buffer Entry base write Port. +
+Object Descriptor Buffer Entry limit Read Port. +
+Object Descriptor Buffer Entry base Read Port.
 |===
 
 == TruISA-RISC-V的指令
@@ -197,10 +205,10 @@ Object Descriptor Buffer Entry base.
 
 6. 对象描述符缓冲器指令
 
-* TSetDescriptor指令，将cs1作为base，rs2作为limit，生成标记指针写入cd，描述如写入默认csr寄存器对（odbentrybase, odbentrylimit)中。
+* TSetDescriptor指令，将cs1作为base，rs2作为limit，生成标记指针写入cd，描述符写入默认csr寄存器对（odbbasewrite, odblimitwrite)中。
 进行标记检查、边界检查，保证[cs1, rs2]对象不超过cs1对象的边界。
 
-* TODBInsert指令，将指定的csr寄存器对（odbentrybase, odbentrylimit）写入ODB中。
+* TODBInsert指令，将指定的csr寄存器对（odbbasewrite, odblimitwrite）写入ODB中。
 
 * TFENCE.VMA指令，flush ODB，rs2和cs1的功能和SFENCE.VMA类似。
 
