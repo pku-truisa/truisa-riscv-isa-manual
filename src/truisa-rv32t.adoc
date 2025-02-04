@@ -205,10 +205,9 @@ Object Descriptor Buffer Entry base Read Port.
 
 6. 对象描述符缓冲器指令
 
-* TSetDescriptor指令，将cs1作为base，rs2作为limit，生成标记指针写入cd，描述符写入默认csr寄存器对（odbbasewrite, odblimitwrite)中。
-进行标记检查、边界检查，保证[cs1, rs2]对象不超过cs1对象的边界。
+* TSetDescriptor指令，将rs1作为base，rs2作为limit，生成标记指针写入cd，描述如写入默认csr寄存器对（odbentrybase, odbentrylimit)中。
 
-* TODBInsert指令，将指定的csr寄存器对（odbbasewrite, odblimitwrite）写入ODB中。
+* TODBW指令，将指定的csr寄存器对（odbentrybase, odbentrylimit）写入ODB中。
 
 * TFENCE.VMA指令，flush ODB，rs2和cs1的功能和SFENCE.VMA类似。
 
