@@ -10,7 +10,7 @@ Truisa与Cheriot的区别在于：
 * 取消标记存储（Memory Taging）的设计选择，原因是硬件设计比较复杂或者影响性能。
 支持指针完整性，可以采用更先进的编程语言和编译器进行静态形式化检查，或者可以采用加密的方法解决。
 
-* 将Top(对象最后字节地址的后继地址)改为Limit，对象最后字节地址，因为采用标记指针，无法表示最高地址字节的后继字节地址。
+* 将Top(对象最后字节地址的后继地址)改为bound，对象最后字节地址，因为采用标记指针，无法表示最高地址字节的后继字节地址。
 
 * 取消Cheriot中的特殊寄存器设计，因为ABI指针位宽兼容，可以修改和复用原CSR定义。增加BoundViolation和TagViolation两个例外Code即可。
 
@@ -65,7 +65,7 @@ S-Radix大于0，小于等于26，大于26的值都按照26处理。
 
 F-Radix表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Radix幂次方。
 
-F-Radix大于0，小于等于26，大于26的值都按26处理。
+F-Radix小于等于26，大于26的值都按26处理。
 
 RV64T标记指针说明：
 
@@ -73,7 +73,7 @@ RV64T标记指针说明：
 
 S-Radix大于0，小于等于57，大于57的值都按57处理。
 
-F-Radix大于0，小于等于57，大于57的值都按57处理。
+F-Radix小于等于57，大于57的值都按57处理。
 
 == 对象描述符表
 
@@ -83,7 +83,7 @@ F-Radix大于0，小于等于57，大于57的值都按57处理。
 
 Capability Exception Codes增加0x20，作为ODB失效的例外ODBMissViolation。（Cheriot手册图7.3）
 
-如果发生例外，应该查找malloc中的对象表，重新插入ODB。如果对象被释放（Free），应该插入Limit为0的描述符。
+如果发生例外，应该查找malloc中的对象表，重新插入ODB。如果对象被释放（Free），应该插入bound为0的描述符。
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
@@ -91,7 +91,7 @@ Capability Exception Codes增加0x20，作为ODB失效的例外ODBMissViolation�
   26+^|*RV32T对象描述符格式*
       |31   |30   |29 |28 |27    |26|25|24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
    6+^|Reserved              20+^|Base Address 
-   6+^|Reserved              20+^|Limit Address 
+   6+^|Reserved              20+^|Bound Address 
 |===
 
 {empty} +
@@ -100,7 +100,7 @@ Capability Exception Codes增加0x20，作为ODB失效的例外ODBMissViolation�
   26+^|*RV64T对象描述符格式*
       |63   |62    |61 |60 |59 |58 |57     |56|55|54|53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
    7+^|Reserved                        19+^|Base Address 
-   7+^|Reserved                        19+^|Limit Address
+   7+^|Reserved                        19+^|Bound Address
 |===
 
 CSR寄存器
@@ -111,26 +111,18 @@ CSR寄存器
 |Number |Privilege |Name |Description
 4+^|Unprivileged Object Descriptor Buffer CSRs
 
-|`0x080` +
-`0x081` +
-`0x082` +
-`0x083` +
-`0x084` +
+|`0x081` +
+`0x082`
+
 |URW +
-URO +
-URO +
-URO +
-URO
-|`uotp` +
-`odblimitwrite` +
-`odbbasewrite` +
-`odblimitread` +
-`odbbaseread`
-|Object Descriptor Buffer Exceptions. +
-Object Descriptor Buffer Entry limit Write Port. +
-Object Descriptor Buffer Entry base write Port. +
-Object Descriptor Buffer Entry limit Read Port. +
-Object Descriptor Buffer Entry base Read Port.
+URW
+
+|`odbentrybound` +
+`odbentrybase`
+
+|Object Descriptor Buffer Entry bound Write Port. +
+Object Descriptor Buffer Entry base write Port. 
+
 |===
 
 == TruISA-RISC-V的指令
@@ -146,12 +138,11 @@ Object Descriptor Buffer Entry base Read Port.
  2+^|0001001        2+^|rs2   2+^|cs1   2+^|000    2+^|00000        2+^| 0001111 <|TFENCE.VMA
  2+^|0001010        2+^|00000 2+^|00000 2+^|000    2+^|00000        2+^| 0001111 <|TODBInsert
  2+^|1111111        2+^|00010 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetBase
- 2+^|1111111        2+^|00100 2+^|rs1   2+^|011    2+^|00000        2+^| 0001111 <|CGetDescriptor
  2+^|1111111        2+^|01010 2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CMove
  2+^|1111111        2+^|01111 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetAddr
- 2+^|1111111        2+^|11000 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetLimit
+ 2+^|1111111        2+^|11000 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetBound
  2+^|0000001        2+^|src   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSpecialRW
- 2+^|0000100        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|TSetDescriptor
+ 2+^|0000100        2+^|rs2   2+^|rs1   2+^|011    2+^|cd           2+^| 0001111 <|TSetDescriptor
  2+^|0001000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetBounds
  2+^|0010000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetAddr
  2+^|0010001        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CIncAddr
@@ -205,10 +196,8 @@ Object Descriptor Buffer Entry base Read Port.
 
 6. 对象描述符缓冲器指令
 
-* TSetDescriptor指令，将rs1作为base，rs2作为limit，生成标记指针写入cd，描述如写入默认csr寄存器对（odbentrybase, odbentrylimit)中。
+* TSetDescriptor指令，将rs1作为base，rs2作为bound，生成标记指针写入cd。
 
-* TODBW指令，将指定的csr寄存器对（odbentrybase, odbentrylimit）写入ODB中。
+* TODBW指令，将指定的csr寄存器对（odbentrybase, odbentrybound）写入ODB中。
 
 * TFENCE.VMA指令，flush ODB，rs2和cs1的功能和SFENCE.VMA类似。
-
-* TGetDescriptor指令，将uotp中的Object Table基址与rs1中的索引相加产生描述符内存地址，进行Load操作，将结果写入(odbentrybase, odbentrylimit)中（需要2个load微操作）
