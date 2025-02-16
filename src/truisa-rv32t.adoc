@@ -135,8 +135,8 @@ Object Descriptor Buffer Entry base write Port.
 |===
     |31          |   25|24  |  20|19  |  15|14  |   12|11      |      7| 6   |   0|
 13+^|*RV32T Base Instruction Set*
- 2+^|0001001        2+^|rs2   2+^|cs1   2+^|000    2+^|00000        2+^| 0001111 <|TFENCE.VMA
- 2+^|0001010        2+^|rs2   2+^|cs1   2+^|000    2+^|00000        2+^| 0001111 <|TODBRW
+ 2+^|0001001        2+^|00000 2+^|cs1   2+^|000    2+^|00000        2+^| 0001111 <|TFENCE.VMA
+ 2+^|0001010        2+^|00000 2+^|cs1   2+^|000    2+^|00000        2+^| 0001111 <|TODBRW
  2+^|1111111        2+^|00010 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetBase
  2+^|1111111        2+^|01010 2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CMove
  2+^|1111111        2+^|01111 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetAddr
@@ -197,6 +197,6 @@ Object Descriptor Buffer Entry base write Port.
 
 * TSetDescriptor指令，将rs1作为base，rs2作为bound，生成标记指针写入cd。
 
-* TODBW指令，将指定的csr寄存器对（odbentrybase, odbentrybound）写入ODB中。
+* TODBRW指令，将指定的csr寄存器对（odbentrybase, odbentrybound）写入ODB中，cs1作为标记指针提供S-Radix。
 
-* TFENCE.VMA指令，flush ODB，rs2和cs1的功能和SFENCE.VMA类似。
+* TFENCE.VMA指令，flush ODB，cs1如果是全0，表示flush所有表项，否则flush cs1指示的对象表项。
