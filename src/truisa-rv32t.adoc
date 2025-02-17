@@ -88,18 +88,18 @@ Capability Exception Codes增加0x20，作为ODB失效的例外ODBMissViolation�
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
-  26+^|*RV32T对象描述符格式*
+  26+^|*RV32T对象描述符缓冲表项格式*
       |31   |30   |29 |28 |27    |26|25|24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   6+^|Reserved              20+^|Base Address 
+    1+|0 5+^|S-Radix         20+^|Base Address 
    6+^|Reserved              20+^|Bound Address 
 |===
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
-  26+^|*RV64T对象描述符格式*
+  26+^|*RV64T对象描述符缓冲表项格式*
       |63   |62    |61 |60 |59 |58 |57     |56|55|54|53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
-   7+^|Reserved                        19+^|Base Address 
+   1+^|0 6+^|S-Radix                   19+^|Base Address 
    7+^|Reserved                        19+^|Bound Address
 |===
 
@@ -120,8 +120,8 @@ URW
 |`odbentrybound` +
 `odbentrybase`
 
-|Object Descriptor Buffer Entry bound Write Port. +
-Object Descriptor Buffer Entry base write Port. 
+|Object Descriptor Buffer Entry Bound. +
+Object Descriptor Buffer Entry Base. 
 
 |===
 
