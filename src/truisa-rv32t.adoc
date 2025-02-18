@@ -137,11 +137,13 @@ Descriptor Lookaside Buffer Entry Base.
 13+^|*RV32T Base Instruction Set*
  2+^|0001001        2+^|00000 2+^|cs1   2+^|000    2+^|00000        2+^| 0001111 <|TFENCE.VMA
  2+^|0001010        2+^|00000 2+^|cs1   2+^|000    2+^|00000        2+^| 0001111 <|TDLBRW
+ 2+^|1111111        2+^|00000 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetPerm
  2+^|1111111        2+^|00010 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetBase
  2+^|1111111        2+^|01010 2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CMove
  2+^|1111111        2+^|01111 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetAddr
  2+^|1111111        2+^|11000 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetBound
- 2+^|0000100        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|TSetDLBEntry
+ 2+^|0000100        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|TSetDesc
+ 2+^|0001100        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CAndPerm
  2+^|0001000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetBounds
  2+^|0010000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetAddr
  2+^|0010001        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CIncAddr
@@ -195,8 +197,23 @@ Descriptor Lookaside Buffer Entry Base.
 
 6. 对象描述符缓冲器指令
 
-* TSetDLBEntry指令，将rs1作为base，rs2作为bound，生成标记指针写入cd。
+* TSetDesc指令，将cs1作为base，rs2作为bound，生成标记指针写入cd。base和bound的地址范围必须在cs1规定的地址范围内。
 
-* TODBRW指令，将指定的csr寄存器对（dlbentrybase, dlbentrybound）写入DLB中，cs1作为标记指针提供S-Radix。
+* TDLBRW指令，将指定的csr寄存器对（dlbentrybase, dlbentrybound）写入DLB中，cs1作为标记指针提供S-Radix。
 
 * TFENCE.VMA指令，flush DLB，cs1如果是全0，表示flush所有表项，否则flush cs1指示的对象表项。
+
+
+== 对象描述符表和描述符旁视缓冲器使用说明
+
+1 产生DLB描述符缺失例外。
+
+2 根据mtval CSR寄存器中的例外产生地址，软件查找缺失对象描述符的base和bound，分别用CLC指令装入到cs1和rs2寄存器中。
+
+3 使用TSetDesc指令生成S-Radix类型的标记指针, cs1是对象的base，rs2是对象的bound，cd是对象的标记指针。软件更新对象描述符表。
+
+4 使用CSRRW指令将上述指令的cd和rs2，分别写入dlbentrybase和dlbentrybound中。
+
+5 TDLBRW指令，cs1是dlbentrybase和dlbentrybound两个CSR所描述的对象的标记指针。检查cs1是否与dlbentrybase相同。
+
+软件可以直接跳过步骤3，直接将cs1写入dlbentrybase，将rs2写入dlbentrybound，然后将描述符表项写入DLB中。
