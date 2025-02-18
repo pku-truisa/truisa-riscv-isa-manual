@@ -14,7 +14,7 @@ Truisa与Cheriot的区别在于：
 
 * 取消Cheriot中的特殊寄存器设计, 取消PCC和CGP，因为ABI指针位宽兼容，可以修改和复用原CSR定义。增加BoundViolation和TagViolation两个例外Code即可。
 
-* 支持OMU(Object Management Unit)，包括大于等于8个条目的对象描述符表缓冲器，（ODB, Object Descriptor Buffer），ODB采用软件管理方式，设计专用的指令。
+* 支持OMU(Object Management Unit)，包括大于等于8个条目的对象描述符表缓冲器，（DLB, Descriptor Lookaside Buffer），DLB采用软件管理方式，设计专用的指令。
 
 在RV32T/RV64T中，地址采用标记指针(Tagged Pointer)格式，将内存对象的元数据信息以压缩编码的形式保存在线性地址高TLEN的未使用位域中。
 标记指针由两部分组成：指针标记(PtrTag)位域和线性地址位域(Address)。
@@ -75,20 +75,20 @@ S-Radix大于0，小于等于57，大于57的值都按57处理。
 
 F-Radix小于等于57，大于57的值都按57处理。
 
-== 对象描述符表
+== 描述符表和描述附表旁视缓冲器
 
 下表表示RV32T和RV64T的描述符格式(草案，第一阶段，只保留Bound, Base，其他权限部分先不实现)
 
-处理器应该包含8个以上条目的ODB，如果标记指针是描述符表格式，则采用Centroid动态的查找ODB，如果查找不到（Miss），则发出例外。
+处理器应该包含8个以上条目的DLB，如果标记指针是描述符表格式，则采用Centroid动态的查找DLB，如果查找不到（Miss），则发出例外。
 
-Capability Exception Codes增加0x20，作为ODB失效的例外ODBMissViolation。（Cheriot手册图7.3）
+Capability Exception Codes增加0x20，作为DLB失效的例外DLBMissViolation。（Cheriot手册图7.3）
 
 如果发生例外，应该查找malloc中的对象表，重新插入ODB。如果对象被释放（Free），应该插入bound为0的描述符。
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
-  26+^|*RV32T对象描述符缓冲表项格式*
+  26+^|*RV32T描述符旁视缓冲表项格式*
       |31   |30   |29 |28 |27    |26|25|24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
     1+|0 5+^|S-Radix         20+^|Base Address 
    6+^|Reserved              20+^|Bound Address 
@@ -97,7 +97,7 @@ Capability Exception Codes增加0x20，作为ODB失效的例外ODBMissViolation�
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
-  26+^|*RV64T对象描述符缓冲表项格式*
+  26+^|*RV64T描述符旁视缓冲表项格式*
       |63   |62    |61 |60 |59 |58 |57     |56|55|54|53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
    1+^|0 6+^|S-Radix                   19+^|Base Address 
    7+^|Reserved                        19+^|Bound Address
@@ -109,7 +109,7 @@ CSR寄存器
 [float="center",align="center",cols="<10%,<10%,<20%,<60%",options="header"]
 |===
 |Number |Privilege |Name |Description
-4+^|Unprivileged Object Descriptor Buffer CSRs
+4+^|Unprivileged Descriptor Lookaside Buffer CSRs
 
 |`0x081` +
 `0x082`
@@ -117,11 +117,11 @@ CSR寄存器
 |URW +
 URW
 
-|`odbentrybound` +
-`odbentrybase`
+|`dlbentrybound` +
+`dlbentrybase`
 
-|Object Descriptor Buffer Entry Bound. +
-Object Descriptor Buffer Entry Base. 
+|Descriptor Lookaside Buffer Entry Bound. +
+Descriptor Lookaside Buffer Entry Base. 
 
 |===
 
@@ -136,12 +136,12 @@ Object Descriptor Buffer Entry Base.
     |31          |   25|24  |  20|19  |  15|14  |   12|11      |      7| 6   |   0|
 13+^|*RV32T Base Instruction Set*
  2+^|0001001        2+^|00000 2+^|cs1   2+^|000    2+^|00000        2+^| 0001111 <|TFENCE.VMA
- 2+^|0001010        2+^|00000 2+^|cs1   2+^|000    2+^|00000        2+^| 0001111 <|TODBRW
+ 2+^|0001010        2+^|00000 2+^|cs1   2+^|000    2+^|00000        2+^| 0001111 <|TDLBRW
  2+^|1111111        2+^|00010 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetBase
  2+^|1111111        2+^|01010 2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CMove
  2+^|1111111        2+^|01111 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetAddr
  2+^|1111111        2+^|11000 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetBound
- 2+^|0000100        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|TSetDescriptor
+ 2+^|0000100        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|TSetDLBEntry
  2+^|0001000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetBounds
  2+^|0010000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetAddr
  2+^|0010001        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CIncAddr
@@ -195,8 +195,8 @@ Object Descriptor Buffer Entry Base.
 
 6. 对象描述符缓冲器指令
 
-* TSetDescriptor指令，将rs1作为base，rs2作为bound，生成标记指针写入cd。
+* TSetDLBEntry指令，将rs1作为base，rs2作为bound，生成标记指针写入cd。
 
-* TODBRW指令，将指定的csr寄存器对（odbentrybase, odbentrybound）写入ODB中，cs1作为标记指针提供S-Radix。
+* TODBRW指令，将指定的csr寄存器对（dlbentrybase, dlbentrybound）写入DLB中，cs1作为标记指针提供S-Radix。
 
-* TFENCE.VMA指令，flush ODB，cs1如果是全0，表示flush所有表项，否则flush cs1指示的对象表项。
+* TFENCE.VMA指令，flush DLB，cs1如果是全0，表示flush所有表项，否则flush cs1指示的对象表项。
