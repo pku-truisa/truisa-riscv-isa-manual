@@ -1,33 +1,31 @@
 [[truisa-rv32t]]
 == RV32T/RV64T的标记指针
 
-RV32T/RV64T的非特权功能、特权功能、指令编码等继承Cheriot的定义，但权能指针（Capability）采用Tagged Pointer形式，指针位宽与RISC-V ABI兼容。
+RV32T/RV64T的大部分非特权功能、特权功能、指令编码等继承Cheriot的定义，但权能指针（Capability）采用标记指针（Tagged Pointer形式），指针位宽与RISC-V ABI兼容。
 
 Truisa与Cheriot的区别在于：
 
-* 取消指针中关于Permission, Sealed, ObjectType，Flags等等的支持和相关指令，原因是如果支持这些就必须采用Fat Pointer，产生ABI不兼容问题。
+* 取消权能指针中关于Sealed, ObjectType，Flags等等的支持和相关指令，将Permission缩减到支持可写权限（W, Writeable）。因此，不支持Cheri/cheriot中定义的隔离功能。
 
-* 取消标记存储（Memory Tagging）的设计选择，原因是硬件设计比较复杂或者影响性能。
-如果需要支持指针完整性，可以采用更先进的编程语言和编译器进行静态形式化检查，或者可以采用指针加密等方法解决。
+* 取消标记存储（Memory Tagging）的设计。保留通用寄存器标记支持。如果需要支持指针完整性，可以采用其他方式，如编程语言和编译器进行静态形式化检查，或者可以采用指针加密等方法解决。
 
-* 将Top(对象最后字节地址的后继地址)改为bound，对象最后字节地址，因为采用标记指针，无法表示最高地址字节的后继字节地址。
+* 将Top(对象最后字节地址的后继地址)改为bound，对象最后字节地址。因为采用标记指针，无法表示最高地址字节的后继字节地址。
 
-* 取消Cheriot中的特殊寄存器设计, 取消PCC和CGP，因为ABI指针位宽兼容，可以修改和复用原CSR定义。增加BoundViolation和TagViolation两个例外Code即可。
+* 取消Cheriot中的特殊寄存器设计, 取消PCC和CGP。因为ABI指针位宽兼容，可以修改和复用原CSR定义。
 
-* 支持OMU(Object Management Unit)，包括大于等于8个条目的对象描述符表缓冲器，（DLB, Descriptor Lookaside Buffer），DLB采用软件管理方式，设计专用的指令。
+* 增加OMU(Object Management Unit)，包括至少2个条目的描述符旁视缓冲器（DLB, Descriptor Lookaside Buffer），DLB采用软件指令插入方式，DLB应该采用cache类似的结构。
 
-在RV32T/RV64T中，地址采用标记指针(Tagged Pointer)格式，将内存对象的元数据信息以压缩编码的形式保存在线性地址高TLEN的未使用位域中。
+在RV32T/RV64T中，地址采用标记格式，将内存对象的元数据信息以压缩编码的形式保存在线性地址高TLEN的未使用位域中。
 标记指针由两部分组成：指针标记(PtrTag)位域和线性地址位域(Address)。
-在RV32T中，标记位域是6比特，TLEN=6，线性地址是26比特。在Rv64T中，标记位域是7比特，TLEN=7，线性地址是57比特。
+在RV32T中，标记位域是7比特，TLEN = 7，线性地址是25比特（支持32MB寻址）。在Rv64T中，标记位域是8比特，TLEN = 8，线性地址是56比特（支持64TB寻址）。
 
 TruISA定义了2种类型的标记指针：
 
-固定尺寸标记指针（F-Radix）：F-Radix指定的2的幂次方大小和对齐的内存对象。用户程序可以通过标记修改指令生成的标记指针，必须符合权限单调性原则。
+固定尺寸标记指针（F-Type）：所有对象大小是2的幂次方大小和对齐。用户程序可以通过CSetBound和CSetBoundImm指令设定，需要符合权限单调性原则。
 
-描述符表标记指针（S-Radix)：在对象描述符表中存在相对应的描述符表项，采用形心标记的哈希对象表。通过S-Radix和Address由硬件计算形心标记。
-该类型指针只能由Malloc等库函数生成，不建议用户程序直接定义。描述符表也由库函数或操作系统管理。
+描述符表标记指针（S-Type）：在对象描述符表中存在相对应的描述符表项，采用形心（Centroid）标记的哈希对象表。通过指针标记和线性地址由硬件计算形心标识（ID)。
 
-基本原则：对小数据对象和规整数据对象采用F-Radix指针类型，对大数据对象和非规整数据对象采用S-Radix类型。
+标记指针类型算则的基本原则是，对小数据对象（设定一定的阈值）和规整数据对象采用F-Type指针类型，对大数据对象和非规整数据对象采用S-Type类型。
 
 下图阐明了RV32T/RV64T的标记指针格式，表1解释了标记各个字段的含义。
 
@@ -35,72 +33,68 @@ TruISA定义了2种类型的标记指针：
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T标记指针格式 (26比特线性地址）*
-      |31      |30|29|28|27|26     |25|24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   6+^|0x00                    20+^|Address   
-   1+^|0    5+^|S-Radix        20+^|Address    
-   1+^|1    5+^|F-Radix        20+^|Address 
-   6+^|0x3F                    20+^|Address
+      |31   |30|29|28|27 |26    |25|24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
+   7+^|0x00                 19+^|Address   
+   1+^|0 5+^|S-Radix  1+^|W 19+^|Address    
+   1+^|1 5+^|F-Radix  1+^|W 19+^|Address 
+   7+^|0x7F                 19+^|Address
 |===
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T标记指针格式（57比特线性地址）*
-      |63      |62|61 |60|58|59|57     |56|55|...|...|49|48|47|46|45|...|...|7|6|5|4|3|2|1|0
-   7+^|0x00                        19+^|Address
-   1+^|0    6+^|S-Radix            19+^|Address 
-   1+^|1    6+^|F-Radix            19+^|Address
-   7+^|0x7F                        19+^|Address
+      |63   |62|61|60|58|59|57 |56    |55|...|...|49|48|47|46|45|...|...|7|6|5|4|3|2|1|0
+   8+^|0x00                       18+^|Address
+   1+^|0 6+^|S-Radix        1+^|W 18+^|Address 
+   1+^|1 6+^|F-Radix        1+^|W 18+^|Address
+   8+^|0xFF                       18+^|Address
 |===
 
 RV32T标记说明：
 
-如果标记位域是0x00或者0x3F，则表示该指针为整数，非标记指针。否则，
+如果标记位域是0x00或者0x7F，则表示该指针为整数地址，非标记指针。
 
-指针最高位如果置1，表示标记位域是描述符表标记指针。线性地址最高位如果清0，表示标记位域是固定尺寸标记指针模式，其中：
+W表示该标记指针是否有可写（writeable)权限，默认为1，可由CAndPerm指令改变成只写（readonly）权限。
 
-S-Radix表示Address所在内存对象的Centroid标识是2的S-Radix幂次方大小和对齐的内存块中间点地址。
+指针最高位如果置0，表示标记位域是S-Type标记指针。其中：
 
-S-Radix大于0，小于等于26，大于26的值都按照26处理。
+* S-Radix表示Address所在内存对象的Centroid标识是2的S-Radix幂次方大小和对齐的内存块中间点地址。S-Radix大于0，小于等于25，如果大于25的值都按照25处理。
 
-F-Radix表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Radix幂次方。
-
-F-Radix小于等于26，大于26的值都按26处理。
+* F-Radix表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Radix幂次方。F-Radix小于等于25，大于25的值都按25处理。
 
 RV64T标记指针说明：
 
-如果标记位域是0x00或0x7F，则表示该指针为线性地址，非标记指针。否则，
+如果标记位域是0x00或0xFF，则表示该指针为整数地址，非标记指针。否则，
 
-S-Radix大于0，小于等于57，大于57的值都按57处理。
+* S-Radix大于0，小于等于56，大于56的值都按56处理。
 
-F-Radix小于等于57，大于57的值都按57处理。
+* F-Radix小于等于56，大于56的值都按56处理。
 
 == 描述符表和描述附表旁视缓冲器
 
-下表表示RV32T和RV64T的描述符格式(草案，第一阶段，只保留Bound, Base，其他权限部分先不实现)
+下表表示RV32T和RV64T的描述符格式，包括Bound, Base，两部分，base部分必须是标记指针类型。bound为0表示该条目无效。
 
-处理器应该包含8个以上条目的DLB，如果标记指针是描述符表格式，则采用Centroid动态的查找DLB，如果查找不到（Miss），则发出例外。
+处理器应该包含至少2条目的DLB，如果标记指针是描述符表格式，则采用Centroid动态的查找DLB，如果查找不到（Miss），则发出DLB例外。
 
-Capability Exception Codes增加0x20，作为DLB失效的例外DLBMissViolation。（Cheriot手册图7.3）
-
-如果发生例外，应该查找malloc中的对象表，重新插入ODB。如果对象被释放（Free），应该插入bound为0的描述符。
+如果发生例外，应该查找malloc中的对象描述符表，重新插入DLB中。如果对象被释放（Free），应该将DLB和ODT中的表项同时无效。
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T描述符旁视缓冲表项格式*
-      |31   |30   |29 |28 |27    |26|25|24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-    1+|0 5+^|S-Radix         20+^|Base Address 
-   6+^|Reserved              20+^|Bound Address 
+      |31   |30|29|28|27|26 |25    |24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
+   1+^|0 5+^|S-Radix     1+^|W 19+^|Base Address 
+   6+^|Reserved          1+^|W 19+^|Bound Address 
 |===
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T描述符旁视缓冲表项格式*
-      |63   |62    |61 |60 |59 |58 |57     |56|55|54|53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
-   1+^|0 6+^|S-Radix                   19+^|Base Address 
-   7+^|Reserved                        19+^|Bound Address
+      |63   |62|61|60|59|58 |57    |56|55|54|53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
+   1+^|0 6+^|S-Radix     1+^|W 18+^|Base Address 
+   7+^|Reserved          1+^|W 18+^|Bound Address
 |===
 
 CSR寄存器
@@ -125,8 +119,13 @@ Descriptor Lookaside Buffer Entry Base.
 
 |===
 
+这两个CSR寄存器，也是OLB的一部分，具备边检检查功能。
+
 == TruISA-RISC-V的指令
-去除Cheri-RISC-V中所有关于Perm, Type, Seal, Flags相关的指令。
+去除Cheri-RISC-V中所有关于ObjectType, Seal, Flags相关的指令。
+去除Capability Special Register的指令。
+
+增加3条描述符表项生成指令和DLB相关指令。
 
 <<<
 == TruISA-RISC-V 指令编码
@@ -158,34 +157,34 @@ Descriptor Lookaside Buffer Entry Base.
 <<<
 == RV32T/RV64T 例外
  
-* 标记检查：如果标记全0或者全1，则不是标记指针，如果是描述符标记指针，查找ODB，如果缺失，则发出例外。
+* 标记检查：如果标记全0或者全1，则不是标记指针，如果是描述符标记指针，查找DLB，如果缺失，则发出例外。
 
 * 越界检查：如果在CIncAddr等指针运算指令和ld/st类指令的地址运算超出cs1定义的内存对象边界，则产生边界溢出违例。
   如果指针计算结果cd的标记与源指针（cs1）的标记不相同则产生标记完整性违例。
-  标记设置指令的目标内存区域超出原内存对象内存区域的单调违例。
+  标记指针设置指令的目标内存区域超出原内存对象内存区域的单调违例。
 
 * 访存指令违例处理，发出例外。
 
-* 标记指针运算和设置指令指令产生违例，目标cd的High符号扩展，产生整数地址，不发例外。
+* 标记指针运算和设置指令指令产生违例，目标对cd中的线性地址符号扩展，使指针标记全0或者全1，产生整数地址，不发例外。
 
 <<<
 == RV32T/RV64T 指令详解
 
 1. 指针运算指令：
 
-* CIncAddr/CIncAddrImm：进行指针运算，结果位指针类型，并进行标记检查和越界检查。如违例，符号扩展产生整数地址。
+* CIncAddr/CIncAddrImm：进行指针运算，结果是指针类型，并进行标记检查和越界检查。如违例，线性地址符号扩展的整数地址。W位相同。
 
-* CSub：只对线性地址进行减法和无符号比较操作，结果为整数类型，不进行任何检查。
+* CSub：只对线性地址进行减法操作，结果为整数类型，不进行任何检查。
 
 * CMove：简单的复制操作，结果为指针类型，不进行任何检查。
 
 2. 边界设置指令
 
-* CSetBounds/CSetBoundImm：将源操作数的低TLEN位数据复制到目的操作数的高TLEN位中，越界检查，保证单调性，如违例线性地址符号扩展，生成整数指针。
+* CSetBounds/CSetBoundImm，cs1作为base地址，rs2是对象长度，生成大于rs2长度的最小F-Radix作为cd的F-Radix，W位相同。
 
 3. 边界提取指令：
 
-* 将边界域复制到目标的最低位。
+* 将边界域复制到目标寄存器的最低位。
 
 4. 访存指令：
 
@@ -193,27 +192,33 @@ Descriptor Lookaside Buffer Entry Base.
 
 5. 标记指针访存指令：
 
-* 对地址计算进行所有检查，对于访存数据不做任何检查，如违例则发出例外。
+* 对地址计算进行标记检查和越界检查，进行权限检查，如违例则发出例外。对于被访问的指针不做任何检查。
 
 6. 对象描述符缓冲器指令
 
-* TSetDesc指令，将cs1作为base，rs2作为bound，生成标记指针写入cd。base和bound的地址范围必须在cs1规定的地址范围内。
+* TSetDesc指令，将cs1作为base，rs2作为长度limit，生成S-Type标记指针写入cd。base和limit须符合单调性原则。
 
-* TDLBRW指令，将指定的csr寄存器对（dlbentrybase, dlbentrybound）写入DLB中，cs1作为标记指针提供S-Radix。
+* TDLBRW指令，将指定的csr寄存器对（dlbentrybase, dlbentrybound）写入DLB中，cs1作为标记指针必须与dlbentrybase相同。
 
-* TFENCE.VMA指令，flush DLB，cs1如果是全0，表示flush所有表项，否则flush cs1指示的对象表项。
+* TFENCE.VMA指令，执行DLB清楚操作（flush），cs1如果是全0，表示清除所有DLB表项，否则只清楚cs1指示的DLB表项。
 
 
 == 对象描述符表和描述符旁视缓冲器使用说明
 
-1 产生DLB描述符缺失例外。
+产生DLB描述符缺失例外。根据mtval CSR寄存器中的例外产生地址，软件查找缺失对象描述符
 
-2 根据mtval CSR寄存器中的例外产生地址，软件查找缺失对象描述符的base和bound，分别用CLC指令装入到cs1和rs2寄存器中。
+如果需要生成一个新的对象描述符
 
-3 使用TSetDesc指令生成S-Radix类型的标记指针, cs1是对象的base，rs2是对象的bound，cd是对象的标记指针。软件更新对象描述符表。
+1. 用CSetAddr生成新的base保存到cs1 和 计算bound-base+1的limit值保存到rs2寄存器中。
 
-4 使用CSRRW指令将上述指令的cd和rs2，分别写入dlbentrybase和dlbentrybound中。
+2. 使用TSetDesc指令生成S-Type的标记指针, cs1是对象的base，rs2是对象的长度limit，cd是对象的标记指针。保证生成的内存对象是cs1内存对象的子集。
 
-5 TDLBRW指令，cs1是dlbentrybase和dlbentrybound两个CSR所描述的对象的标记指针。检查cs1是否与dlbentrybase相同。
+3. 需要软件更新对象描述符表。
 
-软件可以直接跳过步骤3，直接将cs1写入dlbentrybase，将rs2写入dlbentrybound，然后将描述符表项写入DLB中。
+4. base用CLC指令装入，bound用LW/LD装入。
+
+5. 使用CSRRW指令将上述指令的base和bound，分别写入dlbentrybase和dlbentrybound两个CSR寄存器中。
+
+6. 使用TDLBRW指令，cs1是dlbentrybase和dlbentrybound两个CSR所描述的对象的标记指针。检查cs1是否与dlbentrybase相同。
+
+如果对象描述符已经在ODT表中了，则只需要执行4-6部。
