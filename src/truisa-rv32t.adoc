@@ -196,7 +196,7 @@ Descriptor Lookaside Buffer Entry Base.
 
 6. 对象描述符缓冲器指令
 
-* TSetDesc指令，将cs1作为base，rs2作为长度limit，生成S-Type标记指针写入cd。base和limit须符合单调性原则。
+* TSetDesc指令，将cs1作为base，rs2作为bound，生成S-Type标记指针写入cd。base和bound须符合单调性原则是cs1的子集。
 
 * TDLBRW指令，将指定的csr寄存器对（dlbentrybase, dlbentrybound）写入DLB中，cs1作为标记指针必须与dlbentrybase相同。
 
@@ -209,9 +209,9 @@ Descriptor Lookaside Buffer Entry Base.
 
 如果需要生成一个新的对象描述符
 
-1. 用CSetAddr生成新的base保存到cs1 和 计算bound-base+1的limit值保存到rs2寄存器中。
+1. 用CSetAddr生成新的base保存到cs1，将新的bound保存到rs2寄存器中。
 
-2. 使用TSetDesc指令生成S-Type的标记指针, cs1是对象的base，rs2是对象的长度limit，cd是对象的标记指针。保证生成的内存对象是cs1内存对象的子集。
+2. 使用TSetDesc指令生成S-Type的标记指针, cs1是对象的base，rs2是对象的bound，cd是对象的标记指针。保证生成的内存对象是cs1内存对象的子集。
 
 3. 需要软件更新对象描述符表。
 
