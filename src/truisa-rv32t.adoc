@@ -83,18 +83,18 @@ RV64T标记指针说明：
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T描述符旁视缓冲表项格式*
-      |31   |30|29|28|27|26 |25    |24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   1+^|0 5+^|S-Radix     1+^|W 19+^|Base Address 
-   6+^|Reserved          1+^|W 19+^|Bound Address 
+      |31   |30|29|28    |27    |26   |25    |24|23|22|21|20|19|18|17|16|...|8|7|6|5|4|3|2|1|0
+   1+^|0 5+^|S-Radix               1+^|G 14+^|Base Address                         5+^|GSize (G=1)
+   1+^|L 3+^|Reserved 1+^|X  1+^|R 1+^|W 14+^|Bound Address                        5+^|GReserved (G=1)
 |===
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T描述符旁视缓冲表项格式*
-      |63   |62|61|60|59|58 |57    |56|55|54|53|...|48 |47|46|45|...|...|7|6|5|4|3|2|1|0
-   1+^|0 6+^|S-Radix     1+^|W 18+^|Base Address 
-   7+^|Reserved          1+^|W 18+^|Bound Address
+      |63   |62|61|60|59    |58    |57   |56    |55|54|53|...|48 |47|46|45|...|8|7|6|5|4|3|2|1|0
+   1+^|0 6+^|S-Radix                  1+^|G 12+^|Base Address                    6+^|GSize (G=1)
+   1+^|L 4+^|Reserved    1+^|X  1+^|R 1+^|W 12+^|Bound Address                   6+^|GReserved (G=1)
 |===
 
 CSR寄存器
