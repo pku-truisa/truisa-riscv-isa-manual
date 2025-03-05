@@ -37,11 +37,11 @@ Truisa RV32T/RV64T与Cheriot的主要区别在于：
 
 TruISA定义了2种类型的标记指针：
 
-固定尺寸标记指针（F-Type）：所有对象是2的幂次方大小和对齐。用户程序可以通过CSetBound和CSetBoundImm指令设定，需要符合单调性原则。
+固定尺寸标记指针（B-Type）：所有对象是2的幂次方大小和对齐。用户程序可以通过CSetBound和CSetBoundImm指令设定，需要符合单调性原则。
 
 描述符表标记指针（S-Type）：在对象描述符表中存在相对应的描述符表项，采用形心（Centroid）标记的哈希对象表。通过指针标记和线性地址由硬件计算形心标识。
 
-标记指针类型算则的基本原则是，对小数据对象（设定一定的阈值）和规整数据对象采用F-Type指针类型，对大数据对象和非规整数据对象采用S-Type类型。
+标记指针类型算则的基本原则是，对小数据对象（设定一定的阈值）和规整数据对象采用B-Type指针类型，对大数据对象和非规整数据对象采用S-Type类型。
 
 下图阐明了RV32T/RV64T的标记指针格式，表1解释了标记各个字段的含义。
 
@@ -52,7 +52,7 @@ TruISA定义了2种类型的标记指针：
       |31   |30|29|28|27 |26    |25|24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
    7+^|0x00                 19+^|Address   
    1+^|0 5+^|S-Radix  1+^|W 19+^|Address    
-   1+^|1 5+^|F-Radix  1+^|W 19+^|Address 
+   1+^|1 5+^|B-Radix  1+^|W 19+^|Address 
    7+^|0x7F                 19+^|Address
 |===
 
@@ -63,7 +63,7 @@ TruISA定义了2种类型的标记指针：
       |63   |62|61|60|58|59|57 |56    |55|...|...|49|48|47|46|45|...|...|7|6|5|4|3|2|1|0
    8+^|0x00                       18+^|Address
    1+^|0 6+^|S-Radix        1+^|W 18+^|Address 
-   1+^|1 6+^|F-Radix        1+^|W 18+^|Address
+   1+^|1 6+^|B-Radix        1+^|W 18+^|Address
    8+^|0xFF                       18+^|Address
 |===
 
@@ -77,7 +77,7 @@ W表示该标记指针是否有可写（writeable)权限，默认为1，可由CA
 
 * S-Radix表示Address所在内存对象的Centroid标识是2的S-Radix幂次方大小和对齐的内存块中间点地址。S-Radix大于0，小于等于25，如果大于25的值都按照25处理。
 
-* F-Radix表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的F-Radix幂次方。F-Radix小于等于25，大于25的值都按25处理。
+* B-Radix表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的B-Radix幂次方。B-Radix小于等于25，大于25的值都按25处理。
 
 RV64T标记指针说明：
 
@@ -85,7 +85,7 @@ RV64T标记指针说明：
 
 * S-Radix大于0，小于等于56，大于56的值都按56处理。
 
-* F-Radix小于等于56，大于56的值都按56处理。
+* B-Radix小于等于56，大于56的值都按56处理。
 
 == 描述符表和描述附表旁视缓冲器
 
@@ -102,8 +102,9 @@ RV64T标记指针说明：
 |===
   26+^|*RV32T描述符旁视缓冲表项格式*
       |31   |30   |29|28 |27    |26         |25          |24|23|22|21|20|19|18|17|16|...|8|7|6|5|4|3|2|1|0
-   1+^|0 5+^|S-Radix                     1+^|0       19+^|Base Address
-   1+^|L 1+^|G 1+^|A  1+^|X  1+^|W 1+^|R 1+^|0       19+^|Bound Address
+   1+^|L 1+^|G 1+^|0  1+^|X  1+^|0 1+^|R 1+^|0       19+^|Base Address
+   1+^|0 5+^|S-Radix                     1+^|W       19+^|Bound Address
+
 |===
 
 {empty} +
@@ -111,8 +112,9 @@ RV64T标记指针说明：
 |===
   26+^|*RV64T描述符旁视缓冲表项格式*
       |63   |62   |61|60|59 |58    |57         |56    |55|54|53|...|48 |47|46|45|...|8|7|6|5|4|3|2|1|0
-   1+^|0 6+^|S-Radix                        1+^|0 18+^|Base Address
-   1+^|L 1+^|G 2+^|A     1+^|X  1+^|W 1+^|R 1+^|0 18+^|Bound Address
+   1+^|L 1+^|G 2+^|00    1+^|X  1+^|0 1+^|R 1+^|0 18+^|Base Address   
+   1+^|0 6+^|S-Radix                        1+^|W 18+^|Bound Address
+
 |===
 
 CSR寄存器
@@ -159,7 +161,7 @@ Descriptor Lookaside Buffer Entry Base.
  2+^|1111111        2+^|01010 2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CMove
  2+^|1111111        2+^|01111 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetAddr
  2+^|1111111        2+^|11000 2+^|cs1   2+^|011    2+^|rd           2+^| 0001111 <|CGetBound
- 2+^|0000100        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|TSetDesc
+ 2+^|0000100        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|TSetDescr
  2+^|0001100        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CAndPerm
  2+^|0001000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetBounds
  2+^|0010000        2+^|rs2   2+^|cs1   2+^|011    2+^|cd           2+^| 0001111 <|CSetAddr
@@ -198,7 +200,7 @@ Descriptor Lookaside Buffer Entry Base.
 
 2. 边界设置指令
 
-* CSetBounds/CSetBoundImm，cs1作为base地址，rs2是对象长度，生成大于rs2长度的最小F-Radix作为cd的F-Radix，W位相同。
+* CSetBounds/CSetBoundImm，cs1作为base地址，rs2是对象长度，生成大于rs2长度的最小B-Radix作为cd的B-Radix，W位相同。
 
 3. 边界提取指令：
 
@@ -214,7 +216,7 @@ Descriptor Lookaside Buffer Entry Base.
 
 6. 对象描述符缓冲器指令
 
-* TSetDesc指令，将cs1作为base，rs2作为bound，生成S-Type标记指针写入cd。base和bound须符合单调性原则是cs1的子集。
+* TSetDescr指令，将cs1作为base，rs2作为bound，生成S-Type标记指针写入cd。base和bound须符合单调性原则是cs1的子集。
 
 * TDLBRW指令，将指定的csr寄存器对（dlbentrybase, dlbentrybound）写入DLB中，cs1作为标记指针必须与dlbentrybase相同。
 
@@ -229,7 +231,7 @@ Descriptor Lookaside Buffer Entry Base.
 
 1. 用CSetAddr生成新的base保存到cs1，将新的bound保存到rs2寄存器中。
 
-2. 使用TSetDesc指令生成S-Type的标记指针, cs1是对象的base，rs2是对象的bound，cd是对象的标记指针。保证生成的内存对象是cs1内存对象的子集。
+2. 使用TSetDescr指令生成S-Type的标记指针, cs1是对象的base，rs2是对象的bound，cd是对象的标记指针。保证生成的内存对象是cs1内存对象的子集。
 
 3. 需要软件更新对象描述符表。
 
