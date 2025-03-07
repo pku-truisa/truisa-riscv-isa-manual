@@ -124,8 +124,8 @@ CSR寄存器
 |Number |Privilege |Name |Description
 4+^|Unprivileged Descriptor Lookaside Buffer CSRs
 
-|`0x081` +
-`0x082`
+|`0x080` +
+`0x081`
 
 |URW +
 URW
@@ -147,7 +147,7 @@ Descriptor Lookaside Buffer Entry Base.
 增加3条描述符表项生成指令和DLB相关指令。
 
 <<<
-== TruISA-RISC-V 指令编码
+== TruISA RV32T/RV64T 指令编码
 
 [%autowidth.stretch,float="center",align="center",cols="<4m, >4m, <2m, >3m, <4m, >4m, <4m, >4m, <4m, >4m, <4m, >4m, <6m"]
 |===
