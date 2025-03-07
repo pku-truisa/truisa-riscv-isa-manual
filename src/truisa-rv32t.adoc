@@ -13,7 +13,7 @@ TruISA RV32/RV64，简称RV32T/RV64T，构建在CHERIoT、CHERI和RISC-V之上�
 
 == RV32T/RV64T的标记指针
 
-RV32T/RV64T的大部分非特权功能、特权功能、指令编码等继承Cheriot的定义，但权能指针（Capability）采用标记指针（Tagged Pointer形式），指针位宽与RISC-V ABI兼容。
+RV32T/RV64T的大部分非特权功能、特权功能、指令编码等继承Cheriot的定义，但权能指针（Capability）采用标记指针（Tagged Pointer）形式，其指针位宽与RISC-V ABI兼容。
 
 Truisa RV32T/RV64T与Cheriot的主要区别在于：
 
@@ -33,7 +33,7 @@ Truisa RV32T/RV64T与Cheriot的主要区别在于：
 
 在RV32T/RV64T中，地址采用标记格式，将内存对象的元数据信息以压缩编码的形式保存在线性地址高TLEN的未使用位域中。
 标记指针由两部分组成：指针标记(PtrTag)位域和线性地址位域(Address)。
-在RV32T中，标记位域是7比特，TLEN = 7，线性地址是25比特（支持32MB寻址）。在Rv64T中，标记位域是8比特，TLEN = 8，线性地址是56比特（支持64TB寻址）。
+在RV32T/RV64T中，标记位域是8比特，TLEN = 8，RV32T的线性地址是24比特（支持16MB寻址）。Rv64T线性地址是56比特（支持64TB寻址）。
 
 TruISA定义了2种类型的标记指针：
 
@@ -48,18 +48,18 @@ TruISA定义了2种类型的标记指针：
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
-  26+^|*RV32T标记指针格式 (26比特线性地址）*
+  26+^|*RV32T标记指针格式 (24比特线性地址）*
       |31   |30|29|28|27 |26    |25|24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
-   7+^|0x00                 19+^|Address   
-   1+^|0 5+^|S-Radix  1+^|W 19+^|Address    
-   1+^|1 5+^|B-Radix  1+^|W 19+^|Address 
-   7+^|0x7F                 19+^|Address
+   8+^|0x00                 18+^|Address   
+   1+^|0 6+^|S-Radix  1+^|W 18+^|Address    
+   1+^|1 6+^|B-Radix  1+^|W 18+^|Address 
+   8+^|0xFF                 18+^|Address
 |===
 
 {empty} +
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
-  26+^|*RV64T标记指针格式（57比特线性地址）*
+  26+^|*RV64T标记指针格式（56比特线性地址）*
       |63   |62|61|60|58|59|57 |56    |55|...|...|49|48|47|46|45|...|...|7|6|5|4|3|2|1|0
    8+^|0x00                       18+^|Address
    1+^|0 6+^|S-Radix        1+^|W 18+^|Address 
@@ -69,15 +69,14 @@ TruISA定义了2种类型的标记指针：
 
 RV32T标记说明：
 
-如果标记位域是0x00或者0x7F，则表示该指针为整数地址，非标记指针。
+如果标记位域是0x00或者0xFF，则表示该指针为整数地址，非标记指针。
 
 W表示该标记指针是否有可写（writeable)权限，默认为1，可由CAndPerm指令改变成只写（Read-Only）权限。
 
 指针最高位如果置0，表示标记位域是S-Type标记指针。其中：
 
-* S-Radix表示Address所在内存对象的Centroid标识是2的S-Radix幂次方大小和对齐的内存块中间点地址。S-Radix大于0，小于等于25，如果大于25的值都按照25处理。
-
-* B-Radix表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的B-Radix幂次方。B-Radix小于等于25，大于25的值都按25处理。
+* S-Radix表示Address所在内存对象的Centroid标识是2的S-Radix幂次方大小和对齐的内存块中间点地址。S-Radix大于0，小于等于24，如果大于25的值都按照24处理。
+* B-Radix表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的B-Radix幂次方。B-Radix小于等于25，大于24的值都按24处理。
 
 RV64T标记指针说明：
 
@@ -91,9 +90,9 @@ RV64T标记指针说明：
 
 下表表示RV32T和RV64T的描述符格式，包括Bound, Base，两部分，base部分必须是标记指针类型。
 
-处理器应该包含至少2条目的DLB，如果标记指针是描述符表格式，则采用Centroid动态的查找DLB，如果查找不到（Miss），则发出DLB例外。
+处理器应该包含至少8条目的DLB，如果标记指针是描述符表格式，则采用Centroid动态的查找DLB，如果查找不到（Miss），则发出DLB例外。
 
-如果发生例外，应该查找malloc中的对象描述符表ODBT，重新插入DLB中。如果对象被释放（Free），应该将DLB和ODT中的表项同时设置无效。
+如果发生例外，应该查找malloc中的对象描述符表ODT，重新插入DLB中。如果对象被释放（Free），应该将DLB和ODT中的表项同时设置无效。
 
 下表展示描述符的数据结构，其中base部分的tag定义与RISC-V PMPcfg的定义一致，bound部分的tag定义是S-Type的指针标记。
 
@@ -101,9 +100,9 @@ RV64T标记指针说明：
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T描述符旁视缓冲表项格式*
-      |31   |30   |29|28 |27    |26         |25          |24|23|22|21|20|19|18|17|16|...|8|7|6|5|4|3|2|1|0
-   1+^|L 1+^|G 1+^|0  1+^|X  1+^|0 1+^|R 1+^|0       19+^|Base Address
-   1+^|0 5+^|S-Radix                     1+^|W       19+^|Bound Address
+      |31   |30   |29|28|27 |26   |25   |24    |23|22|21|20|19|18|17|16|...|8|7|6|5|4|3|2|1|0
+   1+^|L 1+^|G 3+^|000   1+^|X 1+^|0 1+^|R 18+^|Base Address
+   1+^|0 6+^|S-Radix                 1+^|W 18+^|Bound Address
 
 |===
 
@@ -111,9 +110,9 @@ RV64T标记指针说明：
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T描述符旁视缓冲表项格式*
-      |63   |62   |61|60|59 |58    |57         |56    |55|54|53|...|48 |47|46|45|...|8|7|6|5|4|3|2|1|0
-   1+^|L 1+^|G 2+^|00    1+^|X  1+^|0 1+^|R 1+^|0 18+^|Base Address   
-   1+^|0 6+^|S-Radix                        1+^|W 18+^|Bound Address
+      |63   |62   |61|60|59 |58    |57   |56    |55|54|53|...|48 |47|46|45|...|8|7|6|5|4|3|2|1|0
+   1+^|L 1+^|G 3+^|000   1+^|X  1+^|0 1+^|R 18+^|Base Address   
+   1+^|0 6+^|S-Radix                  1+^|W 18+^|Bound Address
 
 |===
 
