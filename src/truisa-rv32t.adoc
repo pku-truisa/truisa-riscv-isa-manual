@@ -51,8 +51,8 @@ TruISA定义了2种类型的标记指针：
   26+^|*RV32T标记指针格式 (24比特线性地址）*
       |31   |30   |29   |28|27|26|25 |24|23|22|21|20|19|18|17|...|...|...|7|6|5|4|3|2|1|0
    8+^|0x00                      18+^|Address   
-   1+^|0 1+^|W 1+^|0 5+^|S-Radix 18+^|Address    
-   1+^|1 1+^|W 1+^|0 5+^|B-Radix 18+^|Address 
+   1+^|0 1+^|W 1+^|0 5+^|SE      18+^|Address    
+   1+^|1 1+^|W 1+^|0 5+^|BE      18+^|Address 
    8+^|0xFF                      18+^|Address
 |===
 
@@ -62,8 +62,8 @@ TruISA定义了2种类型的标记指针：
   26+^|*RV64T标记指针格式（56比特线性地址）*
       |63   |62   |61|60|58|59|57|56    |55|...|...|49|48|47|46|45|...|...|7|6|5|4|3|2|1|0
    8+^|0x00                         18+^|Address
-   1+^|0 1+^|W 6+^|S-Radix          18+^|Address 
-   1+^|1 1+^|W 6+^|B-Radix          18+^|Address
+   1+^|0 1+^|W 6+^|SE               18+^|Address 
+   1+^|1 1+^|W 6+^|BE               18+^|Address
    8+^|0xFF                         18+^|Address
 |===
 
@@ -75,16 +75,16 @@ W表示该标记指针是否有可写（writeable)权限，默认为1，可由CA
 
 指针最高位如果置0，表示标记位域是S-Type标记指针。其中：
 
-* S-Radix表示Address所在内存对象的Centroid标识是2的S-Radix幂次方大小和对齐的内存块中间点地址。S-Radix大于0，小于等于24，如果大于25的值都按照24处理。
-* B-Radix表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的B-Radix幂次方。B-Radix小于等于25，大于24的值都按24处理。
+* SE (Slot Exponent)表示Address所在内存对象的Centroid标识是2的SE幂次方大小和对齐的内存块中间点地址。SE大于0，小于等于24，如果大于25的值都按照24处理。
+* BE（Block Exponent）表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的BE幂次方。BE小于等于25，大于24的值都按24处理。
 
 RV64T标记指针说明：
 
 如果标记位域是0x00或0xFF，则表示该指针为整数地址，非标记指针。否则，
 
-* S-Radix大于0，小于等于56，大于56的值都按56处理。
+* SE大于0，小于等于56，大于56的值都按56处理。
 
-* B-Radix小于等于56，大于56的值都按56处理。
+* BE小于等于56，大于56的值都按56处理。
 
 == 描述符表和描述附表旁视缓冲器
 
@@ -100,9 +100,9 @@ RV64T标记指针说明：
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV32T描述符旁视缓冲表项格式*
-      |31   |30   |29|28|27 |26   |25   |24    |23|22|21|20|19|18|17|16|...|8|7|6|5|4|3|2|1|0
-   1+^|L 1+^|G 3+^|000   1+^|X 1+^|0 1+^|R 18+^|Base Address
-   1+^|0 1+^|W 6+^|S-Radix                 18+^|Bound Address
+      |31   |30|29|28|27 |26   |25   |24    |23|22|21|20|19|18|17|16|...|8|7|6|5|4|3|2|1|0
+   1+^|L 4+^|000      1+^|X 1+^|0 1+^|R 18+^|Bound Address
+   1+^|0 1+^|W 6+^|SE                   18+^|Base Address
 
 |===
 
@@ -110,9 +110,9 @@ RV64T标记指针说明：
 [%autowidth.stretch,float="center",align="center",cols="26*"]
 |===
   26+^|*RV64T描述符旁视缓冲表项格式*
-      |63   |62   |61|60|59 |58    |57   |56    |55|54|53|...|48 |47|46|45|...|8|7|6|5|4|3|2|1|0
-   1+^|L 1+^|G 3+^|000   1+^|X  1+^|0 1+^|R 18+^|Base Address   
-   1+^|0 1+^|W 6+^|S-Radix                  18+^|Bound Address
+      |63   |62|61|60|59 |58    |57   |56    |55|54|53|...|48 |47|46|45|...|8|7|6|5|4|3|2|1|0
+   1+^|L 4+^|000      1+^|X  1+^|0 1+^|R 18+^|Bound Address   
+   1+^|0 1+^|W 6+^|SE                    18+^|Base Address
 
 |===
 
@@ -130,11 +130,11 @@ CSR寄存器
 |URW +
 URW
 
-|`dlbentrybound` +
-`dlbentrybase`
+|`dlbentrybase` +
+`dlbentrybound`
 
-|Descriptor Lookaside Buffer Entry Bound. +
-Descriptor Lookaside Buffer Entry Base. 
+|Descriptor Lookaside Buffer Entry Base. +
+Descriptor Lookaside Buffer Entry Bound. 
 
 |===
 
@@ -199,7 +199,7 @@ Descriptor Lookaside Buffer Entry Base.
 
 2. 边界设置指令
 
-* CSetBounds/CSetBoundImm，cs1作为base地址，rs2是对象长度，生成大于rs2长度的最小B-Radix作为cd的B-Radix，W位相同。
+* CSetBounds/CSetBoundImm，cs1作为base地址，rs2是对象长度，生成大于rs2长度的最小BE作为cd的BE，W位相同。
 
 3. 边界提取指令：
 
