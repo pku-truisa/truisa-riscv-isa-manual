@@ -6,8 +6,7 @@ TruISA RV32/RV64，简称RV32T/RV64T，构建在CHERIoT、CHERI和RISC-V之上�
 
 系统安全应该满足一下的条件：
 
-* 不可伪造性 Unforgeable 对内存的引用（特别是访问内存的权限）只能从其他引用构建而成。
-* 单调性 Monotonic 构建的引用不会比其原始引用拥有更多的权限（应该权限更少）。
+* 单调性 Monotonic 新构建的引用不会比其原始引用拥有更多的权限（应该权限更少）。
 * 空间安全性 Saptially Safe 对内存的引用授权访问的内存位置集在引用构建时确定。
 * 时间安全性 Temporal Safe 对内存区域的引用在内存被重新用于不同分配时将不再可用。
 
@@ -19,7 +18,7 @@ Truisa RV32T/RV64T与Cheriot的主要区别在于：
 
 * 取消权能指针中关于Sealed, ObjectType，Flags等等的支持和相关指令，将Permission缩减到支持可写权限（W, Writeable）。
 
-* 不支持Cheri/Cheriot中定义的隔离功能。
+* 不支持Cheri/Cheriot中的软件隔离功能。
 
 * 取消标记存储（Memory Tagging）的设计，只保留通用寄存器标记支持。如果需要支持指针完整性，可以采用其他方式，如编程语言和编译器进行静态形式化检查，或者可以采用指针加密等方法解决。
 
@@ -31,15 +30,17 @@ Truisa RV32T/RV64T与Cheriot的主要区别在于：
 
 * 增加OMU(Object Management Unit)，包括至少2个条目的描述符旁视缓冲器（DLB, Descriptor Lookaside Buffer），DLB采用软件指令插入方式，DLB应该采用cache类似的结构。
 
+* 对程序指针PC不做安全检查。
+
 在RV32T/RV64T中，地址采用标记格式，将内存对象的元数据信息以压缩编码的形式保存在线性地址高TLEN的未使用位域中。
 标记指针由两部分组成：指针标记(PtrTag)位域和线性地址位域(Address)。
 在RV32T/RV64T中，标记位域是8比特，TLEN = 8，RV32T的线性地址是24比特（支持16MB寻址）。Rv64T线性地址是56比特（支持64TB寻址）。
 
 TruISA定义了2种类型的标记指针：
 
-固定尺寸标记指针（B-Type）：所有对象是2的幂次方大小和对齐。用户程序可以通过CSetBound和CSetBoundImm指令设定，需要符合单调性原则。
+规整块标记指针（Block-Type, B-Type）：所有对象是2的幂次方大小和对齐。用户程序可以通过CSetBound和CSetBoundImm指令设定，需要符合单调性原则。
 
-描述符表标记指针（S-Type）：在对象描述符表中存在相对应的描述符表项，采用形心（Centroid）标记的哈希对象表。通过指针标记和线性地址由硬件计算形心标识。
+描述符标记指针（Slot-Type, S-Type）：在对象描述符表中存在相对应的描述符表项，采用形心（Centroid）标记的哈希对象表。通过指针标记和线性地址由硬件计算形心标识。
 
 标记指针类型算则的基本原则是，对小数据对象（设定一定的阈值）和规整数据对象采用B-Type指针类型，对大数据对象和非规整数据对象采用S-Type类型。
 
@@ -73,7 +74,7 @@ RV32T标记说明：
 
 W表示该标记指针是否有可写（writeable)权限，默认为1，可由CAndPerm指令改变成只写（Read-Only）权限。
 
-指针最高位如果置0，表示标记位域是S-Type标记指针。其中：
+指针最高位如果置0，表示标记位域是S-Type标记指针。否则是B-Type，其中：
 
 * SE (Slot Exponent)表示Address所在内存对象的Centroid标识是2的SE幂次方大小和对齐的内存块中间点地址。SE大于0，小于等于24，如果大于25的值都按照24处理。
 * BE（Block Exponent）表示Address所在内存对象是固定大小的内存块，块大小和对齐都是2的BE幂次方。BE小于等于25，大于24的值都按24处理。
@@ -88,7 +89,7 @@ RV64T标记指针说明：
 
 == 描述符表和描述附表旁视缓冲器
 
-下表表示RV32T和RV64T的描述符格式，包括Bound, Base，两部分，base部分必须是标记指针类型。
+下表表示RV32T和RV64T的描述符格式，包括Bound, Base，两部分，base部分必须是标记指针类型。Bound部分如果全0，表示该描述符无效。
 
 处理器应该包含至少8条目的DLB，如果标记指针是描述符表格式，则采用Centroid动态的查找DLB，如果查找不到（Miss），则发出DLB例外。
 
@@ -116,6 +117,8 @@ RV64T标记指针说明：
 
 |===
 
+标识符L表示该描述符一旦进入DLB，将不会被替换。
+
 CSR寄存器
 
 .Currently allocated RISC-V unprivileged CSR addresses for trusia.
@@ -138,7 +141,7 @@ Descriptor Lookaside Buffer Entry Bound.
 
 |===
 
-这两个CSR寄存器，也是OLB的一部分，具备边检检查功能。
+这两个CSR寄存器，也是DLB的一部分，具备边检检查功能。
 
 == TruISA-RISC-V的指令
 去除Cheri-RISC-V中所有关于ObjectType, Seal, Flags相关的指令。
@@ -176,15 +179,13 @@ Descriptor Lookaside Buffer Entry Bound.
 <<<
 == RV32T/RV64T 例外
  
-* 标记检查：如果标记全0或者全1，则不是标记指针，如果是描述符标记指针，查找DLB，如果缺失，则发出例外。
+* 标记检查（Tag Violation）：如果标记全0或者全1，则不是标记指针，如果是描述符标记指针，查找DLB，如果缺失，则发出例外。
 
-* 越界检查：如果在CIncAddr等指针运算指令和ld/st类指令的地址运算超出cs1定义的内存对象边界，则产生边界溢出违例。
+* 越界检查（Bounds Violation）：如果在CIncAddr等指针运算指令和ld/st类指令的地址运算超出cs1定义的内存对象边界，则产生边界溢出违例。
   如果指针计算结果cd的标记与源指针（cs1）的标记不相同则产生标记完整性违例。
   标记指针设置指令的目标内存区域超出原内存对象内存区域的单调违例。
 
-* 访存指令违例处理，发出例外。
-
-* 标记指针运算和设置指令指令产生违例，目标对cd中的线性地址符号扩展，使指针标记全0或者全1，产生整数地址，不发例外。
+* DLB例外（Descriptor Violation）
 
 <<<
 == RV32T/RV64T 指令详解
@@ -197,9 +198,13 @@ Descriptor Lookaside Buffer Entry Bound.
 
 * CMove：简单的复制操作，结果为指针类型，不进行任何检查。
 
+* 标记指针运算产生违例，目标对cd中的线性地址符号扩展，使指针标记全0或者全1，产生整数地址，不发例外。
+
 2. 边界设置指令
 
 * CSetBounds/CSetBoundImm，cs1作为base地址，rs2是对象长度，生成大于rs2长度的最小BE作为cd的BE，W位相同。
+
+标记设置指令指令产生违例，目标对cd中的线性地址符号扩展，使指针标记全0或者全1，产生整数地址，不发例外。
 
 3. 边界提取指令：
 
